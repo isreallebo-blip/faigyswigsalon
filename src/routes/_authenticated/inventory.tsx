@@ -746,7 +746,7 @@ function CustomOrderDialog({
     mutationFn: async (v: CustomOrderFormValues) => {
       const payload = {
         client_id: v.client_id || null,
-        vendor: v.vendor || null,
+        vendor_id: v.vendor_id || null,
         specs: v.specs || null,
         expected_delivery: v.expected_delivery || null,
         received_date: v.received_date || null,
