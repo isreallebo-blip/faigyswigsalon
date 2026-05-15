@@ -495,8 +495,15 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
 
   const del = useMutation({
     mutationFn: async () => {
+      const w = wig.data;
+      const label = w ? [w.brand, w.style, w.wig_code].filter(Boolean).join(" · ") || "Wig" : "Wig";
       const { error } = await supabase.from("wigs").delete().eq("id", wigId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "inventory", recordId: wigId, recordLabel: label,
+        summary: `Wig ${label} deleted`,
+        before: w as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Wig deleted");
