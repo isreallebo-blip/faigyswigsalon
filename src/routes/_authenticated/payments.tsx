@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Plus, Wallet, Ban, Link2, Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/audit";
+import { triggerNotificationFn, formatDateClient } from "@/lib/notifications/client";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -230,6 +231,37 @@ function PaymentDialog({
           summary: `Payment of $${data.amount} recorded`,
           after: data as unknown as Record<string, unknown>,
         });
+        if (data.client_id) {
+          const amountStr = `${Number(data.amount).toFixed(2)}`;
+          const dateStr = formatDateClient(data.date);
+          // Look up client name + balance for the receipt
+          const [{ data: clientRow }, { data: history }] = await Promise.all([
+            supabase.from("clients").select("full_name, display_id").eq("id", data.client_id).maybeSingle(),
+            supabase.from("payments").select("amount").eq("client_id", data.client_id).is("voided_at", null),
+          ]);
+          const balance = (history ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+          // Short SMS confirmation
+          await triggerNotificationFn({ data: {
+            clientId: data.client_id, templateKey: "payment_received",
+            vars: { amount: amountStr, date: dateStr },
+            idempotencyKey: `pay-recv-${data.id}`,
+          }}).catch(() => {});
+          // Formatted email receipt
+          await triggerNotificationFn({ data: {
+            clientId: data.client_id, templateKey: "payment_receipt",
+            idempotencyKey: `pay-receipt-${data.id}`,
+            receiptData: {
+              clientName: clientRow?.full_name ?? "",
+              cltId: clientRow?.display_id ?? "",
+              date: dateStr,
+              hebrewDate: "",
+              amount: `$${amountStr}`,
+              method: data.method ?? "",
+              description: data.description ?? "",
+              balance: balance > 0 ? `$${balance.toFixed(2)}` : undefined,
+            },
+          }}).catch(() => {});
+        }
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },

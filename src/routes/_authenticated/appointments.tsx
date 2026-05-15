@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
+import { triggerNotificationFn, appointmentVarsClient } from "@/lib/notifications/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -247,6 +248,7 @@ function ApptDialog({
         notes: v.notes || null,
       };
       if (appt) {
+        const oldStartIso = appt.starts_at;
         const { data, error } = await supabase.from("appointments").update(payload).eq("id", appt.id).select().single();
         if (error) throw error;
         await logAudit({
@@ -256,6 +258,14 @@ function ApptDialog({
           before: appt as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
         });
+        if (new Date(oldStartIso).getTime() !== start.getTime()) {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id,
+            templateKey: "appointment_rescheduled",
+            vars: appointmentVarsClient(start, v.type),
+            idempotencyKey: `appt-reschedule-${appt.id}-${start.toISOString()}`,
+          }}).catch(() => {});
+        }
       } else {
         const { data, error } = await supabase.from("appointments").insert(payload).select().single();
         if (error) throw error;
@@ -265,6 +275,12 @@ function ApptDialog({
           summary: `${v.type} appointment scheduled`,
           after: data as unknown as Record<string, unknown>,
         });
+        await triggerNotificationFn({ data: {
+          clientId: v.client_id,
+          templateKey: "appointment_confirmation",
+          vars: appointmentVarsClient(start, v.type),
+          idempotencyKey: `appt-confirm-${data.id}`,
+        }}).catch(() => {});
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
@@ -283,6 +299,14 @@ function ApptDialog({
         before: appt as unknown as Record<string, unknown>,
         after: data as unknown as Record<string, unknown>,
       });
+      if (status === "cancelled" && appt.client_id) {
+        await triggerNotificationFn({ data: {
+          clientId: appt.client_id,
+          templateKey: "appointment_cancelled",
+          vars: appointmentVarsClient(new Date(appt.starts_at), appt.type),
+          idempotencyKey: `appt-cancel-${appt.id}`,
+        }}).catch(() => {});
+      }
     },
     onSuccess: () => { toast.success("Status updated"); onSaved(); },
   });
