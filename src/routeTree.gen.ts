@@ -14,9 +14,15 @@ import { Route as PortalRouteImport } from './routes/portal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as PortalWigsRouteImport } from './routes/portal.wigs'
 import { Route as PortalVerifyRouteImport } from './routes/portal.verify'
+import { Route as PortalRepairsRouteImport } from './routes/portal.repairs'
+import { Route as PortalProfileRouteImport } from './routes/portal.profile'
+import { Route as PortalPaymentsRouteImport } from './routes/portal.payments'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
+import { Route as PortalAppointmentsRouteImport } from './routes/portal.appointments'
 import { Route as AuthenticatedWorkflowsRouteImport } from './routes/_authenticated/workflows'
 import { Route as AuthenticatedVendorsRouteImport } from './routes/_authenticated/vendors'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -59,19 +65,49 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const PortalWigsRoute = PortalWigsRouteImport.update({
+  id: '/wigs',
+  path: '/wigs',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PortalVerifyRoute = PortalVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalRepairsRoute = PortalRepairsRouteImport.update({
+  id: '/repairs',
+  path: '/repairs',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalProfileRoute = PortalProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalPaymentsRoute = PortalPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalLoginRoute = PortalLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAppointmentsRoute = PortalAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
   getParentRoute: () => PortalRoute,
 } as any)
 const AuthenticatedWorkflowsRoute = AuthenticatedWorkflowsRouteImport.update({
@@ -181,8 +217,14 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/payments': typeof PortalPaymentsRoute
+  '/portal/profile': typeof PortalProfileRoute
+  '/portal/repairs': typeof PortalRepairsRoute
   '/portal/verify': typeof PortalVerifyRoute
+  '/portal/wigs': typeof PortalWigsRoute
+  '/portal/': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -195,7 +237,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -205,9 +246,15 @@ export interface FileRoutesByTo {
   '/repairs': typeof AuthenticatedRepairsRoute
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/payments': typeof PortalPaymentsRoute
+  '/portal/profile': typeof PortalProfileRoute
+  '/portal/repairs': typeof PortalRepairsRoute
   '/portal/verify': typeof PortalVerifyRoute
+  '/portal/wigs': typeof PortalWigsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/portal': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -233,9 +280,15 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/vendors': typeof AuthenticatedVendorsRoute
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/payments': typeof PortalPaymentsRoute
+  '/portal/profile': typeof PortalProfileRoute
+  '/portal/repairs': typeof PortalRepairsRoute
   '/portal/verify': typeof PortalVerifyRoute
+  '/portal/wigs': typeof PortalWigsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -262,8 +315,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/vendors'
     | '/workflows'
+    | '/portal/appointments'
     | '/portal/login'
+    | '/portal/payments'
+    | '/portal/profile'
+    | '/portal/repairs'
     | '/portal/verify'
+    | '/portal/wigs'
+    | '/portal/'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
@@ -276,7 +335,6 @@ export interface FileRouteTypes {
   to:
     | '/forgot-password'
     | '/login'
-    | '/portal'
     | '/reset-password'
     | '/appointments'
     | '/clients'
@@ -286,9 +344,15 @@ export interface FileRouteTypes {
     | '/repairs'
     | '/vendors'
     | '/workflows'
+    | '/portal/appointments'
     | '/portal/login'
+    | '/portal/payments'
+    | '/portal/profile'
+    | '/portal/repairs'
     | '/portal/verify'
+    | '/portal/wigs'
     | '/'
+    | '/portal'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
@@ -313,9 +377,15 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/vendors'
     | '/_authenticated/workflows'
+    | '/portal/appointments'
     | '/portal/login'
+    | '/portal/payments'
+    | '/portal/profile'
+    | '/portal/repairs'
     | '/portal/verify'
+    | '/portal/wigs'
     | '/_authenticated/'
+    | '/portal/'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/users'
@@ -375,12 +445,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/portal/wigs': {
+      id: '/portal/wigs'
+      path: '/wigs'
+      fullPath: '/portal/wigs'
+      preLoaderRoute: typeof PortalWigsRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/portal/verify': {
       id: '/portal/verify'
@@ -389,11 +473,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalVerifyRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/repairs': {
+      id: '/portal/repairs'
+      path: '/repairs'
+      fullPath: '/portal/repairs'
+      preLoaderRoute: typeof PortalRepairsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/profile': {
+      id: '/portal/profile'
+      path: '/profile'
+      fullPath: '/portal/profile'
+      preLoaderRoute: typeof PortalProfileRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/payments': {
+      id: '/portal/payments'
+      path: '/payments'
+      fullPath: '/portal/payments'
+      preLoaderRoute: typeof PortalPaymentsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/login': {
       id: '/portal/login'
       path: '/login'
       fullPath: '/portal/login'
       preLoaderRoute: typeof PortalLoginRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/appointments': {
+      id: '/portal/appointments'
+      path: '/appointments'
+      fullPath: '/portal/appointments'
+      preLoaderRoute: typeof PortalAppointmentsRouteImport
       parentRoute: typeof PortalRoute
     }
     '/_authenticated/workflows': {
@@ -568,13 +680,25 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 interface PortalRouteChildren {
+  PortalAppointmentsRoute: typeof PortalAppointmentsRoute
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalPaymentsRoute: typeof PortalPaymentsRoute
+  PortalProfileRoute: typeof PortalProfileRoute
+  PortalRepairsRoute: typeof PortalRepairsRoute
   PortalVerifyRoute: typeof PortalVerifyRoute
+  PortalWigsRoute: typeof PortalWigsRoute
+  PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalAppointmentsRoute: PortalAppointmentsRoute,
   PortalLoginRoute: PortalLoginRoute,
+  PortalPaymentsRoute: PortalPaymentsRoute,
+  PortalProfileRoute: PortalProfileRoute,
+  PortalRepairsRoute: PortalRepairsRoute,
   PortalVerifyRoute: PortalVerifyRoute,
+  PortalWigsRoute: PortalWigsRoute,
+  PortalIndexRoute: PortalIndexRoute,
 }
 
 const PortalRouteWithChildren =
