@@ -247,17 +247,11 @@ export const getPortalPayments = createServerFn({ method: "GET" })
       .order("date", { ascending: false });
 
     let totalSpent = 0;
-    let outstanding = 0;
     for (const p of data ?? []) {
       if (p.voided_at) continue;
-      const amt = Number(p.amount ?? 0);
-      if (p.category === "charge" || p.category === "service" || p.category === "product") {
-        outstanding += amt;
-      } else {
-        totalSpent += amt;
-        outstanding -= amt;
-      }
+      totalSpent += Number(p.amount ?? 0);
     }
+    const outstanding = 0;
     void logPortalActivity({
       userId: context.userId,
       userEmail: (context.claims.email as string) ?? null,
