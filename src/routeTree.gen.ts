@@ -33,7 +33,11 @@ import { Route as AuthenticatedInventoryRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio-status'
+import { Route as ApiPublicTwilioInboundRouteImport } from './routes/api/public/twilio-inbound'
 import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
+import { Route as ApiPublicResendInboundRouteImport } from './routes/api/public/resend-inbound'
+import { Route as ApiPublicResendEventsRouteImport } from './routes/api/public/resend-events'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
@@ -162,9 +166,29 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
+  id: '/api/public/twilio-status',
+  path: '/api/public/twilio-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTwilioInboundRoute = ApiPublicTwilioInboundRouteImport.update({
+  id: '/api/public/twilio-inbound',
+  path: '/api/public/twilio-inbound',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSendRemindersRoute = ApiPublicSendRemindersRouteImport.update({
   id: '/api/public/send-reminders',
   path: '/api/public/send-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicResendInboundRoute = ApiPublicResendInboundRouteImport.update({
+  id: '/api/public/resend-inbound',
+  path: '/api/public/resend-inbound',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicResendEventsRoute = ApiPublicResendEventsRouteImport.update({
+  id: '/api/public/resend-events',
+  path: '/api/public/resend-events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsUsersRoute =
@@ -228,7 +252,11 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/resend-events': typeof ApiPublicResendEventsRoute
+  '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
+  '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
+  '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -258,7 +286,11 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/resend-events': typeof ApiPublicResendEventsRoute
+  '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
+  '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
+  '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -292,7 +324,11 @@ export interface FileRoutesById {
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/resend-events': typeof ApiPublicResendEventsRoute
+  '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
+  '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
+  '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -326,7 +362,11 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
+    | '/api/public/resend-events'
+    | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
+    | '/api/public/twilio-inbound'
+    | '/api/public/twilio-status'
     | '/settings/'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -356,7 +396,11 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
+    | '/api/public/resend-events'
+    | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
+    | '/api/public/twilio-inbound'
+    | '/api/public/twilio-status'
     | '/settings'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -389,7 +433,11 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/users'
+    | '/api/public/resend-events'
+    | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
+    | '/api/public/twilio-inbound'
+    | '/api/public/twilio-status'
     | '/_authenticated/settings/'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -402,7 +450,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicResendEventsRoute: typeof ApiPublicResendEventsRoute
+  ApiPublicResendInboundRoute: typeof ApiPublicResendInboundRoute
   ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
+  ApiPublicTwilioInboundRoute: typeof ApiPublicTwilioInboundRoute
+  ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -578,11 +630,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/public/twilio-status': {
+      id: '/api/public/twilio-status'
+      path: '/api/public/twilio-status'
+      fullPath: '/api/public/twilio-status'
+      preLoaderRoute: typeof ApiPublicTwilioStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twilio-inbound': {
+      id: '/api/public/twilio-inbound'
+      path: '/api/public/twilio-inbound'
+      fullPath: '/api/public/twilio-inbound'
+      preLoaderRoute: typeof ApiPublicTwilioInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/send-reminders': {
       id: '/api/public/send-reminders'
       path: '/api/public/send-reminders'
       fullPath: '/api/public/send-reminders'
       preLoaderRoute: typeof ApiPublicSendRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/resend-inbound': {
+      id: '/api/public/resend-inbound'
+      path: '/api/public/resend-inbound'
+      fullPath: '/api/public/resend-inbound'
+      preLoaderRoute: typeof ApiPublicResendInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/resend-events': {
+      id: '/api/public/resend-events'
+      path: '/api/public/resend-events'
+      fullPath: '/api/public/resend-events'
+      preLoaderRoute: typeof ApiPublicResendEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings/users': {
@@ -710,7 +790,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicResendEventsRoute: ApiPublicResendEventsRoute,
+  ApiPublicResendInboundRoute: ApiPublicResendInboundRoute,
   ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
+  ApiPublicTwilioInboundRoute: ApiPublicTwilioInboundRoute,
+  ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
