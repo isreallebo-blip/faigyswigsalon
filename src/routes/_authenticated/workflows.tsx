@@ -152,6 +152,11 @@ function NewWorkflowDialog({ onClose, onCreated }: { onClose: () => void; onCrea
       }));
       const { error: e2 } = await supabase.from("workflow_steps").insert(steps);
       if (e2) throw e2;
+      await logAudit({
+        action: "create", module: "workflow", recordId: wf.id, recordLabel: type,
+        summary: `${type} workflow created`,
+        after: wf as unknown as Record<string, unknown>,
+      });
       return wf.id;
     },
     onSuccess: (id) => {
