@@ -516,8 +516,14 @@ function VendorDetail({ vendorId, onClose }: { vendorId: string; onClose: () => 
 
   const del = useMutation({
     mutationFn: async () => {
+      const label = vendor.data?.name ?? "Vendor";
       const { error } = await supabase.from("vendors").delete().eq("id", vendorId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "vendor", recordId: vendorId, recordLabel: label,
+        summary: `Vendor ${label} deleted`,
+        before: vendor.data as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Vendor deleted");
