@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex items-center gap-2 px-6 py-7">
         <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gold to-gold-soft shadow-gold" />
         <div>
-          <div className="font-display text-xl leading-none">Maison</div>
+          <div className="font-display text-xl leading-none">Faigy's Wig Salon</div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Wig salon CRM</div>
         </div>
       </div>
