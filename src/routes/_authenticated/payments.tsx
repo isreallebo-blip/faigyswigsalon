@@ -115,7 +115,7 @@ function PaymentsTab() {
     },
   });
 
-  const total = useMemo(() => (list.data ?? []).reduce((s, p) => s + Number(p.amount), 0), [list.data]);
+  const total = useMemo(() => (list.data ?? []).filter((p) => !p.voided_at).reduce((s, p) => s + Number(p.amount), 0), [list.data]);
 
   return (
     <div className="space-y-4">
