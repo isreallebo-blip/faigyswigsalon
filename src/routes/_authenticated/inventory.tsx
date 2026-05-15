@@ -793,7 +793,11 @@ function CustomOrderDialog({
             </Select>
           </Field>
           <Field label="Vendor">
-            <Input {...form.register("vendor")} placeholder="Vendor name" />
+            <VendorSelect
+              value={form.watch("vendor_id") ?? null}
+              onChange={(id) => form.setValue("vendor_id", id, { shouldDirty: true })}
+              filterType="supplier"
+            />
           </Field>
           <Field label="Expected delivery">
             <Input type="date" {...form.register("expected_delivery")} />
