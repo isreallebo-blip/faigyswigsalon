@@ -1,87 +1,117 @@
-# Client Portal
+# Client Notifications — SMS (Twilio) + Email (Resend)
 
-A client-facing portal completely separate from the staff CRM, at `/portal`. Clients sign up themselves (email or SMS), get auto-matched to an existing client profile (or a new one is created), and see a read-only view of their data.
+A complete notification system that sends both SMS and email to clients on key events, with admin-editable templates, per-client opt-in/out, automatic reminders, delivery logging, and STOP-keyword compliance.
 
-## Database changes
+## 1. Database
 
-Add the link between Supabase auth users and client profiles, plus a "self-registered" flag.
+### `notification_templates`
+Admin-editable templates (one row per type). Seeded with the 11 templates below.
+- `key` (text, unique) — e.g. `appointment_confirmation`
+- `label` (text) — e.g. "Appointment confirmation"
+- `category` (text) — appointment / wig / payment / wash_set
+- `enabled` (bool, default true) — global on/off
+- `sms_body` (text) — with `[First Name]`, `[Date]`, etc. placeholders
+- `email_subject` (text)
+- `email_body` (text) — same placeholder set
+- `send_email` (bool, default true), `send_sms` (bool, default true)
 
-- `clients`:
-  - `auth_user_id uuid UNIQUE NULL` — links a portal user to their client row
-  - `self_registered boolean NOT NULL DEFAULT false`
-  - `self_registered_acknowledged boolean NOT NULL DEFAULT false` — drives the staff "new self-registration" banner
-- `audit_logs`: reuse existing table; add a new module value `'portal'` (no schema change, `module` is text).
-- Trigger `handle_new_portal_user`: on `auth.users` insert, if `raw_user_meta_data->>'portal' = 'true'`, find a matching `clients` row by email or phone:
-  - match found → set `clients.auth_user_id = new.id`
-  - no match → insert a new `clients` row with `auth_user_id`, `email`/`phone` from auth user, `self_registered = true`. The existing `display_id` default assigns CLT-XXXXXX automatically.
-- Skip the existing `handle_new_user` profile insert for portal users (check the same metadata flag) so portal clients don't get staff `profiles` rows.
+### `notification_log`
+Every send attempt — one row per channel.
+- `client_id`, `template_key`, `channel` ('sms' | 'email')
+- `recipient` (phone or email), `subject`, `body`
+- `status` ('sent' | 'delivered' | 'failed'), `error_message`
+- `provider_message_id`, `metadata` (jsonb), `created_at`
+- `idempotency_key` (text, unique nullable) — prevents double-sends
 
-### RLS — portal scoping
+### `clients` — new columns
+- `sms_opt_in` (bool, default true)
+- `email_opt_in` (bool, default true)
+- `outstanding_balance_reminded_at` (timestamptz)
 
-Add additive policies so a portal user (authenticated, no staff role) sees only their own data. Staff policies stay as-is.
+### `appointments` — new column
+- `last_notified_starts_at` (timestamptz) — to detect reschedules
 
-Helper: `public.current_client_id()` SECURITY DEFINER, returns `clients.id` where `auth_user_id = auth.uid()`.
+### Seed data
+Insert the 11 templates with the exact copy from the spec.
 
-New SELECT policies (existing `auth read X` policies remain — staff continue full access; portal users will only match if their `client_id` resolves):
+### RLS
+- Templates: staff manages; portal users read enabled ones.
+- Log: staff reads/writes; portal users read their own.
 
-We'll instead **tighten** the existing `auth read X` policies to: `is_staff(auth.uid()) OR <portal scope>`, where:
-- `clients`: `id = current_client_id()`
-- `appointments`, `payments`, `service_workflows`, `custom_orders`, `repairs`: `client_id = current_client_id()`
-- `wigs`: `id IN (select wig_id from service_workflows where client_id = current_client_id()) OR id IN (select wig_id from repairs where client_id = current_client_id()) OR reserved_for_client_id = current_client_id()`
-- `workflow_steps`: `workflow_id IN (select id from service_workflows where client_id = current_client_id())`
+## 2. Server logic
 
-`is_staff(uid)` = `EXISTS (select 1 from profiles where id = uid)`. All current staff have a profile row; portal clients won't.
+### `src/lib/notifications/send.functions.ts`
+Single core server function `sendNotification({ clientId, templateKey, vars, idempotencyKey? })`:
+1. Loads template; bails if `enabled = false`.
+2. Loads client; resolves channels by `template.send_*` AND `client.*_opt_in` AND contact-on-file (fallback rule: if only one method exists, use it even if the other is on).
+3. Renders placeholders: `[First Name]`, `[Last Name]`, `[Date]`, `[Time]`, `[Amount]`, `[Hebrew Date]` (via `@hebcal/core`), `[CLT ID]`, `[Appointment Type]`.
+4. SMS via Twilio gateway (appends `Reply STOP to unsubscribe`); Email via Resend gateway.
+5. Inserts a `notification_log` row per channel with status + provider IDs + error.
+6. Idempotency key prevents duplicates on retry.
 
-Portal users get UPDATE on `clients` only for their own row, limited to name/email/phone/photo (enforced in the server function, not the policy).
+### Trigger wiring (called from existing staff mutations)
+- `appointments` insert → `appointment_confirmation`
+- `appointments` update of `starts_at` → `appointment_rescheduled`
+- `appointments` status → `cancelled` → `appointment_cancelled`
+- `repairs` status → `sent_to_vendor` → `wig_sent_to_repair`
+- `repairs` status → `returned` OR wig status → `ready_for_pickup` → `wig_ready_for_pickup`
+- `custom_orders` set `received_date` → `custom_order_arrived`
+- `payments` insert → `payment_received` (SMS) + `payment_receipt` (email-only formatted receipt)
+- `service_workflows` wash & set drop-off step → `wash_set_dropoff`
+- `service_workflows` wash & dry step complete → `wash_set_ready`
 
-## Server functions (createServerFn)
+### Cron jobs (`/api/public/hooks/*` + pg_cron, every 15 min)
+- `appointment-reminders-24h` — appointments with `starts_at` between now+23.5h and now+24.5h, no `reminder_24h_sent_at` → send + stamp.
+- `appointment-reminders-2h` — same logic with 2h window + `reminder_2h_sent_at`.
+- `outstanding-balance-reminder` — clients with positive balance older than 7 days and null `outstanding_balance_reminded_at` → send + stamp (one-shot).
 
-All under `src/lib/portal/*.functions.ts`, protected by `requireSupabaseAuth`.
+### Twilio inbound webhook `/api/public/hooks/twilio-sms-inbound`
+- Verifies Twilio signature.
+- If body is `STOP` (case-insensitive), set `clients.sms_opt_in = false` for matching phone.
 
-- `getPortalDashboard` — next appt, repairs in progress, outstanding balance, total visits
-- `getPortalAppointments`
-- `getPortalWigs` — maps internal status to client-friendly label server-side
-- `getPortalRepairs` — strips vendor name/company, returns "our repair partner"
-- `getPortalPayments` — list + running total + outstanding balance
-- `getPortalProfile` / `updatePortalProfile` — name/email/phone/photo only
-- `acknowledgeSelfRegistrations` (staff) — clears the banner
-- `getSelfRegisteredCount` (staff) — for the CRM banner
+## 3. Portal UI
 
-Each function logs to `audit_logs` with `module='portal'`.
+`portal.profile.tsx` — add **Notification preferences** card with two switches (SMS / Email). Disable the toggle that would result in both being off (must keep at least one on); show inline helper text.
 
-## Routes
+## 4. Staff UI
 
-Public:
-- `src/routes/portal.tsx` — pathless layout shell with portal theme + bottom nav
-- `src/routes/portal/login.tsx` — email or phone tab; sends OTP via Supabase `signInWithOtp` (email) and Twilio-backed `signInWithOtp` (phone). Sets `options.data = { portal: true }` on signup.
-- `src/routes/portal/verify.tsx` — enter 6-digit code
-- `src/routes/_portal.tsx` — gated layout (`beforeLoad` checks session + that `current_client_id()` resolves; otherwise redirect to `/portal/login`)
-- `src/routes/_portal/index.tsx` — Dashboard
-- `src/routes/_portal/appointments.tsx`
-- `src/routes/_portal/wigs.tsx`
-- `src/routes/_portal/repairs.tsx`
-- `src/routes/_portal/payments.tsx`
-- `src/routes/_portal/profile.tsx`
+### Client profile — new "Activity" tab
+Lists `notification_log` rows: timestamp, type (label), channel icon, recipient, status badge (Sent / Delivered / Failed). Failed rows red; "Resend" button on each row.
 
-Staff CRM gets a small `<SelfRegisteredBanner />` on the clients page.
+### Client list — failure indicator
+Red dot on a client row when they have a `failed` notification in the last 7 days.
 
-## Twilio (SMS OTP)
+### `Settings > Notifications` (admin only)
+- Table of all 11 templates with toggle (enabled), edit drawer for SMS body / Email subject / Email body / per-channel toggles.
+- Variable reference chip-row inside the editor.
+- Live preview with a sample client.
 
-Phone OTP requires Supabase Auth's Phone provider configured with Twilio. Use `supabase--configure_auth` is not enough — phone provider needs Twilio creds set in the Supabase Auth Phone provider settings. I'll request the Twilio Account SID, Auth Token, and Messaging Service SID via `add_secret` and wire them.
+## 5. Email receipt template
 
-If the user prefers, we can ship email-only first and add SMS after Twilio creds are in.
+React Email template `payment-receipt.tsx` rendered for `payment_receipt`:
+- Faigy's Wig Salon header
+- Client name + CLT-XXXXXX
+- Date + Hebrew date
+- Amount, method, description
+- Running balance OR "Paid in full"
+- Thank-you footer
 
-## Design
+(All other emails reuse a simple branded shell — no full receipt formatting.)
 
-Separate theme scoped to `/portal/*` via a CSS class on the portal root: cream `oklch(0.97 0.02 80)`, gold `oklch(0.75 0.13 75)`, soft black `oklch(0.20 0.01 60)`. Serif headings (Cormorant), clean sans body (Karla). Mobile-first, bottom tab bar, no sidebar. Hebcal via `@hebcal/core` (already pure JS, Worker-safe).
+## 6. Secrets needed
 
-## Out of scope (per spec)
+- `TWILIO_API_KEY` (Twilio connector) + `TWILIO_FROM_NUMBER`
+- `RESEND_API_KEY` (Resend connector) + verified `notify.faigyswigsalon.com` sender
+- `TWILIO_WEBHOOK_AUTH_TOKEN` for inbound STOP signature verification
 
-- Online booking, online payments
-- Vendor names visible to clients
-- Editing measurements/notes from portal
+I'll request these via the secrets tool right after you approve.
 
-## Confirmations needed
+---
 
-1. **SMS via Twilio**: ship email-first now, add SMS after you provide Twilio creds — OK?
-2. **Tightening existing RLS**: I'll modify the current `auth read X` policies to `is_staff(uid) OR <portal scope>`. Staff access is unchanged. Confirm OK to touch existing policies.
+## Out of scope
+
+- Replying to other inbound SMS (only STOP handled)
+- Per-client custom templates
+- Localization beyond English
+
+Ready to build on approval.
