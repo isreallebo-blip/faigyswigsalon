@@ -181,6 +181,7 @@ function ClientsPage() {
                   <ClientAvatar client={c} size={48} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{c.full_name}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground">{c.display_id}</div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
                       {c.phone && (
                         <span className="inline-flex items-center gap-1">
@@ -295,7 +296,7 @@ function ClientDialog({
           .single();
         if (error) throw error;
         await logAudit({
-          action: "update", module: "client", recordId: data.id, recordLabel: data.full_name,
+          action: "update", module: "client", recordId: data.id, recordLabel: data.full_name, displayId: data.display_id,
           summary: `Client ${data.full_name} updated`,
           before: client as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
@@ -309,7 +310,7 @@ function ClientDialog({
         .single();
       if (error) throw error;
       await logAudit({
-        action: "create", module: "client", recordId: data.id, recordLabel: data.full_name,
+        action: "create", module: "client", recordId: data.id, recordLabel: data.full_name, displayId: data.display_id,
         summary: `Client ${data.full_name} created`,
         after: data as unknown as Record<string, unknown>,
       });
@@ -471,7 +472,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
       const { error } = await supabase.from("clients").delete().eq("id", clientId);
       if (error) throw error;
       await logAudit({
-        action: "delete", module: "client", recordId: clientId, recordLabel: label,
+        action: "delete", module: "client", recordId: clientId, recordLabel: label, displayId: client.data?.display_id,
         summary: `Client ${label} deleted`,
         before: client.data as unknown as Record<string, unknown>,
       });
@@ -525,6 +526,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         </div>
         <div className="flex-1">
           <h2 className="font-display text-3xl leading-tight">{c.full_name}</h2>
+          <p className="font-mono text-xs text-muted-foreground mt-0.5">{c.display_id}</p>
           <Badge variant={STATUS_VARIANT[c.status]} className="mt-2">
             {STATUS_LABEL[c.status]}
           </Badge>

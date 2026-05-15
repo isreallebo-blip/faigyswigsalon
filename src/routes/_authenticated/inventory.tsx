@@ -197,6 +197,7 @@ function WigCatalog() {
                       <div className="truncate text-sm font-medium">
                         {[w.brand, w.style].filter(Boolean).join(" ") || "Untitled"}
                       </div>
+                      <div className="font-mono text-[10px] text-muted-foreground">{w.display_id}</div>
                       <div className="truncate text-xs text-muted-foreground">
                         {[w.color, w.cap_size].filter(Boolean).join(" · ") || w.wig_code || "—"}
                       </div>
@@ -231,7 +232,7 @@ function useClientOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, full_name")
+        .select("id, full_name, display_id")
         .order("full_name");
       if (error) throw error;
       return data;
@@ -296,7 +297,7 @@ function WigDialog({
         const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("*").single();
         if (error) throw error;
         await logAudit({
-          action: "update", module: "inventory", recordId: data.id, recordLabel: label,
+          action: "update", module: "inventory", recordId: data.id, recordLabel: label, displayId: data.display_id,
           summary: `Wig ${label} updated`,
           before: wig as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
@@ -306,7 +307,7 @@ function WigDialog({
       const { data, error } = await supabase.from("wigs").insert(payload).select("*").single();
       if (error) throw error;
       await logAudit({
-        action: "create", module: "inventory", recordId: data.id, recordLabel: label,
+        action: "create", module: "inventory", recordId: data.id, recordLabel: label, displayId: data.display_id,
         summary: `Wig ${label} added to inventory`,
         after: data as unknown as Record<string, unknown>,
       });
@@ -400,7 +401,10 @@ function WigDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {clients.data?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="font-mono text-[10px] text-muted-foreground mr-2">{c.display_id}</span>
+                      {c.full_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -500,7 +504,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
       const { error } = await supabase.from("wigs").delete().eq("id", wigId);
       if (error) throw error;
       await logAudit({
-        action: "delete", module: "inventory", recordId: wigId, recordLabel: label,
+        action: "delete", module: "inventory", recordId: wigId, recordLabel: label, displayId: w?.display_id,
         summary: `Wig ${label} deleted`,
         before: w as unknown as Record<string, unknown>,
       });
@@ -531,7 +535,8 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{w.wig_code || "Wig"}</p>
+          <p className="font-mono text-xs text-muted-foreground">{w.display_id}</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{w.wig_code || "Wig"}</p>
           <h2 className="font-display text-3xl">{[w.brand, w.style].filter(Boolean).join(" ") || "Untitled"}</h2>
           <div className="mt-2 flex items-center gap-2">
             <Badge variant={STATUS_VARIANT[w.status]}>{STATUS_LABEL[w.status]}</Badge>
@@ -828,7 +833,10 @@ function CustomOrderDialog({
               </SelectTrigger>
               <SelectContent>
                 {clients.data?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="font-mono text-[10px] text-muted-foreground mr-2">{c.display_id}</span>
+                    {c.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

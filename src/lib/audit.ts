@@ -21,6 +21,7 @@ interface LogArgs {
   module: AuditModule;
   recordId?: string | null;
   recordLabel?: string | null;
+  displayId?: string | null;
   summary: string;
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;
@@ -65,6 +66,11 @@ export async function logAudit(args: LogArgs) {
       userName = prof?.full_name ?? user.email ?? null;
     }
     const ip = await resolveIp();
+    const labelWithId = args.displayId
+      ? args.recordLabel
+        ? `${args.displayId} · ${args.recordLabel}`
+        : args.displayId
+      : args.recordLabel ?? null;
     await supabase.from("audit_logs").insert({
       user_id: user?.id ?? null,
       user_email: user?.email ?? null,
@@ -73,7 +79,7 @@ export async function logAudit(args: LogArgs) {
       action: args.action,
       module: args.module,
       record_id: args.recordId ?? null,
-      record_label: args.recordLabel ?? null,
+      record_label: labelWithId,
       summary: args.summary,
       before: (args.before ?? null) as never,
       after: (args.after ?? null) as never,

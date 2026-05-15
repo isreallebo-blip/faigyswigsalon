@@ -69,12 +69,12 @@ function AppointmentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, client:client_id(full_name)")
+        .select("*, client:client_id(full_name, display_id)")
         .gte("starts_at", range.from.toISOString())
         .lte("starts_at", range.to.toISOString())
         .order("starts_at");
       if (error) throw error;
-      return data as (Appt & { client: { full_name: string } | null })[];
+      return data as (Appt & { client: { full_name: string; display_id: string } | null })[];
     },
   });
 
@@ -186,6 +186,7 @@ function AppointmentsPage() {
                             <Badge variant="secondary" className="text-[10px] capitalize">{a.status}</Badge>
                           </div>
                           <p className="mt-1 truncate font-medium">{a.client?.full_name ?? "—"}</p>
+                          {a.client?.display_id && <p className="font-mono text-[10px] text-muted-foreground">{a.client.display_id}</p>}
                           <p className="text-muted-foreground capitalize">{a.type.replace("_", " ")}</p>
                         </button>
                       ))}

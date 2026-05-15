@@ -257,6 +257,7 @@ export type Database = {
       clients: {
         Row: {
           created_at: string
+          display_id: string
           email: string | null
           full_name: string
           id: string
@@ -270,6 +271,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_id?: string
           email?: string | null
           full_name: string
           id?: string
@@ -283,6 +285,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_id?: string
           email?: string | null
           full_name?: string
           id?: string
@@ -733,6 +736,7 @@ export type Database = {
           address: string | null
           company: string | null
           created_at: string
+          display_id: string
           email: string | null
           id: string
           name: string
@@ -747,6 +751,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string
+          display_id?: string
           email?: string | null
           id?: string
           name: string
@@ -761,6 +766,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string
+          display_id?: string
           email?: string | null
           id?: string
           name?: string
@@ -780,6 +786,7 @@ export type Database = {
           color: string | null
           cost: number | null
           created_at: string
+          display_id: string
           hair_type: Database["public"]["Enums"]["hair_type"] | null
           id: string
           notes: string | null
@@ -799,6 +806,7 @@ export type Database = {
           color?: string | null
           cost?: number | null
           created_at?: string
+          display_id?: string
           hair_type?: Database["public"]["Enums"]["hair_type"] | null
           id?: string
           notes?: string | null
@@ -818,6 +826,7 @@ export type Database = {
           color?: string | null
           cost?: number | null
           created_at?: string
+          display_id?: string
           hair_type?: Database["public"]["Enums"]["hair_type"] | null
           id?: string
           notes?: string | null
