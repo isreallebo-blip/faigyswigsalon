@@ -68,6 +68,7 @@ const baseNav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/inventory", label: "Inventory", icon: Package },
+  { to: "/vendors", label: "Vendors", icon: Building2 },
   { to: "/workflows", label: "Service workflows", icon: Workflow },
   { to: "/appointments", label: "Appointments", icon: CalendarDays },
   { to: "/repairs", label: "Repairs", icon: Wrench },
