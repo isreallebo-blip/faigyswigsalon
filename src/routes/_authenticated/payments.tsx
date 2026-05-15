@@ -149,19 +149,21 @@ function PaymentsTab() {
         <div className="space-y-2">
           {list.data.map((p) => (
             <button key={p.id} onClick={() => setEditing(p)} className="w-full text-left">
-              <Card className="transition hover:border-gold">
+              <Card className={`transition hover:border-gold ${p.voided_at ? "opacity-60" : ""}`}>
                 <CardContent className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="capitalize">{p.category.replace("_", " ")}</Badge>
-                      <span className="font-medium">{p.client?.full_name ?? "—"}</span>
+                      {p.voided_at && <Badge variant="destructive">Voided</Badge>}
+                      <span className={`font-medium ${p.voided_at ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
                       <span className="text-xs text-muted-foreground capitalize">· {p.method.replace("_", " ")}</span>
                       {p.account && <span className="text-xs text-muted-foreground">→ {p.account.name}</span>}
                     </div>
                     {p.description && <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>}
+                    {p.void_reason && <p className="mt-1 text-xs text-destructive">Void reason: {p.void_reason}</p>}
                   </div>
                   <div className="text-right">
-                    <div className="font-display text-xl tabular-nums">${Number(p.amount).toLocaleString()}</div>
+                    <div className={`font-display text-xl tabular-nums ${p.voided_at ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
                   </div>
                 </CardContent>
