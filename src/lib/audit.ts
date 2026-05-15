@@ -75,9 +75,9 @@ export async function logAudit(args: LogArgs) {
       record_id: args.recordId ?? null,
       record_label: args.recordLabel ?? null,
       summary: args.summary,
-      before: args.before ?? null,
-      after: args.after ?? null,
-      changes: diff(args.before, args.after),
+      before: (args.before ?? null) as never,
+      after: (args.after ?? null) as never,
+      changes: diff(args.before, args.after) as never,
     });
   } catch (e) {
     // Audit logging must never break the user flow.
