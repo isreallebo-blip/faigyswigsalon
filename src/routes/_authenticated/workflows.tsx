@@ -264,6 +264,7 @@ function WorkflowDetail({ id, onClose }: { id: string; onClose: () => void }) {
       await supabase.from("workflow_steps").delete().eq("workflow_id", id);
       const { error } = await supabase.from("service_workflows").delete().eq("id", id);
       if (error) throw error;
+      await logAudit({ action: "delete", module: "workflow", recordId: id, summary: "Workflow deleted" });
     },
     onSuccess: () => {
       toast.success("Workflow removed");
