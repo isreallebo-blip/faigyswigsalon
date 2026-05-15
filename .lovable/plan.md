@@ -1,67 +1,62 @@
+## Add Display IDs for Clients, Vendors, and Wigs
 
-# Wig Salon CRM — Build Plan
+Add permanent, auto-generated, human-readable IDs (CLT-000001, VND-000001, WIG-000001) shown throughout the app. Internal relationships already use UUIDs, so renaming is already safe — this work adds a **display layer** on top.
 
-This is a substantial full-stack app (7 modules, auth, SMS, reconciliation). I'll build it in phases so you can review and steer between each one, rather than dumping everything in one go.
+### Database changes (one migration)
 
-## Stack
-- TanStack Start + React + Tailwind (already scaffolded)
-- Lovable Cloud (Supabase) for DB + auth + storage (wig/client photos)
-- Twilio connector for SMS reminders
-- Recharts for dashboard charts
-- shadcn components, sidebar layout
+Add a `display_id` text column to `clients`, `vendors`, `wigs`:
 
-## Design direction
-- Soft luxury palette: warm cream background, soft black text, muted gold accent, subtle rose undertone
-- Serif display font (Cormorant) for headings + clean sans (Inter) for UI
-- Generous spacing, rounded-xl cards, restrained motion
-- Persistent left sidebar nav, top bar with search + user menu
-- Fully responsive (sidebar collapses to drawer on mobile)
+- New column: `display_id text UNIQUE` on each table
+- Backing sequences: `clients_display_seq`, `vendors_display_seq`, `wigs_display_seq` (bigint, start 1)
+- BEFORE INSERT trigger on each table: if `display_id` is null, set it to `CLT-` / `VND-` / `WIG-` + `lpad(nextval(seq)::text, 6, '0')`
+- Backfill: assign IDs to all existing rows ordered by `created_at`
+- Make column `NOT NULL` after backfill
+- Revoke UPDATE on `display_id` via a BEFORE UPDATE trigger that raises if the value changes (immutability guarantee)
 
-## Data model (Supabase)
-- `profiles` (staff users)
-- `clients` (contact, measurements jsonb, status, photo_url, preferences)
-- `client_tags`
-- `wigs` (catalog + status + photos[])
-- `custom_orders` (wig_id, client_id, vendor, expected_date, specs)
-- `service_workflows` (client_id, type: 'sale_cut'|'wash_set', wig_id, status)
-- `workflow_steps` (workflow_id, step_key, status, notes, dates)
-- `appointments` (client_id, workflow_id, type, starts_at, status, notes, reminders_sent jsonb)
-- `repairs` (client_id, wig_id, workflow_id, vendor, dates, cost, status, work_requested)
-- `payments` (client_id, date, amount, method, category, description)
-- `bank_accounts` (name, type: 'bank'|'cc_processor', starting_balance)
-- `bank_transactions` (account_id, date, amount, description, matched_payment_id)
-- `activity_log` (client_id, type, ref_id, summary) — drives client timeline
-- RLS: authenticated staff users have full access (single-tenant salon app)
-- Storage buckets: `client-photos`, `wig-photos`
+UUIDs remain the actual foreign keys — no relationship changes, no breakage.
 
-## Phased delivery
+### UI changes
 
-**Phase 1 — Foundation (this turn)**
-- Enable Lovable Cloud
-- Design system (palette, fonts, tokens, sidebar shell)
-- Auth (email/password login + protected routes)
-- Full DB schema + RLS + storage buckets
-- Sidebar navigation scaffold for all 7 modules
-- Dashboard with live data (today's appts, vendor wigs, low stock, revenue chart)
+**Display the ID in:**
 
-**Phase 2 — Core CRM**
-- Clients module (list, profile, measurements, photo, tags, timeline)
-- Inventory module (catalog grid, wig detail, status changes, reservation, custom orders)
+1. **Clients list** (`src/routes/_authenticated/clients.tsx`) — new column "ID"
+2. **Client profile / detail dialog** — small muted text below name
+3. **Vendors list** (`src/routes/_authenticated/vendors.tsx`) — new column "ID"
+4. **Vendor profile / detail dialog** — small muted text below name
+5. **Inventory list** (`src/routes/_authenticated/inventory.tsx`) — show wig display_id (replaces or augments existing `wig_code`)
+6. **Wig detail dialog** — small muted text
+7. **Appointments list** — show client display_id next to client name
+8. **Payments list** — show client display_id next to client name
+9. **Repairs list** — show client + vendor + (wig if linked) display_ids
+10. **Workflows list** — show client display_id
+11. **Custom orders** — show client + vendor display_ids
+12. **Audit log** — append display_id to `record_label` when logging client/vendor/wig actions (update `src/lib/audit.ts` callers)
+13. **CSV exports** — include display_id column (audit log CSV, any other exports)
 
-**Phase 3 — Operations**
-- Service workflows (Sale+Cut and Wash&Set step trackers)
-- Repairs module (linked to client + workflow)
-- Appointments module (calendar day/week/month, status tracking)
+**Selectors** (`client-select.tsx`, `vendor-select.tsx`): show "CLT-000012 — Jane Doe" so they're searchable by ID.
 
-**Phase 4 — Money + SMS**
-- Payments + bank register with running balance
-- Bank reconciliation (manual entry + matching)
-- Credit card processor reconciliation
-- Twilio connector for SMS reminders (24h + 2h before) via scheduled server function
+**Global search**: there is no global search component currently — out of scope unless one exists. (Can add later.)
 
-## Notes
-- I'll generate a hero/login background image for the auth screen
-- Form validation with zod + react-hook-form throughout
-- SMS scheduling: cron-style server route at `/api/public/send-reminders` triggered by pg_cron every 15 min
+### Files to touch
 
-If this looks right, approve and I'll start Phase 1. If you want to reorder phases, change the palette, or skip a module, tell me now.
+- `supabase/migrations/...` (new) — schema + triggers + backfill
+- `src/components/client-select.tsx`, `vendor-select.tsx` — show ID in label
+- `src/routes/_authenticated/clients.tsx` — column + detail
+- `src/routes/_authenticated/vendors.tsx` — column + detail
+- `src/routes/_authenticated/inventory.tsx` — column + detail
+- `src/routes/_authenticated/appointments.tsx` — show client ID
+- `src/routes/_authenticated/payments.tsx` — show client ID
+- `src/routes/_authenticated/repairs.tsx` — show client/vendor IDs
+- `src/routes/_authenticated/workflows.tsx` — show client ID
+- `src/routes/_authenticated/settings.audit-log.tsx` — show in record column + CSV
+- `src/lib/audit.ts` — accept optional displayId, include in `record_label`
+
+### Technical notes
+
+- **Trigger-generated** rather than computed view so the ID is concrete, indexable, and exportable.
+- **Sequences** guarantee monotonic, gap-free-ish numbering with no race conditions (unlike `MAX()+1`).
+- **Immutability trigger** prevents anyone (including admins via SQL) from changing a display_id once assigned.
+- `wig_code` already exists as a free-text field; we keep it as-is and add `display_id` as the new permanent system ID. The user can still set their own `wig_code` if desired.
+- TypeScript types regenerate automatically after migration approval.
+
+After migration is approved, I'll implement all UI changes in one pass.
