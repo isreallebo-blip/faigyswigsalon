@@ -401,7 +401,10 @@ function WigDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {clients.data?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="font-mono text-[10px] text-muted-foreground mr-2">{c.display_id}</span>
+                      {c.full_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -830,7 +833,10 @@ function CustomOrderDialog({
               </SelectTrigger>
               <SelectContent>
                 {clients.data?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="font-mono text-[10px] text-muted-foreground mr-2">{c.display_id}</span>
+                    {c.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
