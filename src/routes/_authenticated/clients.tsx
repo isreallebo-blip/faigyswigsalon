@@ -4,11 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Phone, Mail, Upload, Trash2, Calendar, Wrench, Wallet, Sparkles } from "lucide-react";
+import { Plus, Search, Phone, Mail, Upload, Trash2, Calendar, Wrench, Wallet, Sparkles, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/lib/use-access";
+import { ClientImportDialog } from "@/components/client-import-dialog";
+import { capitalizeName, formatPhone, formatPhoneTyping, normalizeEmail } from "@/lib/client-import";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
