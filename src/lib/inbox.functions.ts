@@ -344,3 +344,58 @@ export const listStaff = createServerFn({ method: "GET" })
       .order("full_name", { ascending: true });
     return data ?? [];
   });
+
+// ===== Client profile thread =====
+
+export const getClientThread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ clientId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: messages } = await context.supabase
+      .from("messages")
+      .select("id, conversation_id, direction, channel, body, sender_name, created_at, delivery_status, read_by_staff_at, read_by_client_at")
+      .eq("client_id", data.clientId)
+      .order("created_at", { ascending: true });
+
+    const { data: broadcasts } = await context.supabase
+      .from("broadcast_recipients")
+      .select("id, broadcast_id, channel, status, created_at, broadcasts:broadcast_id(body, email_subject, sent_by_name)")
+      .eq("client_id", data.clientId)
+      .order("created_at", { ascending: true });
+
+    // Pick most recent open conversation, else null (composer creates one)
+    const { data: conv } = await context.supabase
+      .from("conversations")
+      .select("id, status")
+      .eq("client_id", data.clientId)
+      .order("last_message_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Mark inbound (from client) as read by staff
+    await context.supabase
+      .from("messages")
+      .update({ read_by_staff_at: new Date().toISOString() })
+      .eq("client_id", data.clientId)
+      .eq("direction", "inbound")
+      .is("read_by_staff_at", null);
+
+    return {
+      messages: messages ?? [],
+      broadcasts: broadcasts ?? [],
+      conversation: conv,
+    };
+  });
+
+export const getClientUnreadCount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ clientId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { count } = await context.supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", data.clientId)
+      .eq("direction", "inbound")
+      .is("read_by_staff_at", null);
+    return { count: count ?? 0 };
+  });

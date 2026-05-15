@@ -25,6 +25,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useServerFn } from "@tanstack/react-start";
+import { getClientUnreadCount } from "@/lib/inbox.functions";
+import { ClientMessages } from "@/components/client-messages";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
@@ -550,11 +553,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         </Button>
       </div>
 
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        </TabsList>
+      <ClientProfileTabs clientId={clientId} client={c}>
         <TabsContent value="profile" className="space-y-4 pt-4">
           <Card>
             <CardContent className="p-5">
@@ -603,7 +602,14 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         <TabsContent value="timeline" className="pt-4">
           <ClientTimeline clientId={clientId} />
         </TabsContent>
-      </Tabs>
+        <TabsContent value="messages" className="pt-4">
+          <ClientMessages
+            clientId={clientId}
+            clientHasPhone={!!c.phone}
+            clientHasEmail={!!c.email}
+          />
+        </TabsContent>
+      </ClientProfileTabs>
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <ClientDialog
@@ -614,6 +620,42 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         />
       </Dialog>
     </div>
+  );
+}
+
+function ClientProfileTabs({
+  clientId,
+  client,
+  children,
+}: {
+  clientId: string;
+  client: Client;
+  children: React.ReactNode;
+}) {
+  const unreadFn = useServerFn(getClientUnreadCount);
+  const { data: unread } = useQuery({
+    queryKey: ["client-unread", clientId],
+    queryFn: () => unreadFn({ data: { clientId } }),
+    refetchInterval: 30000,
+  });
+  void client;
+  const count = unread?.count ?? 0;
+  return (
+    <Tabs defaultValue="profile">
+      <TabsList>
+        <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="timeline">Timeline</TabsTrigger>
+        <TabsTrigger value="messages" className="relative">
+          Messages
+          {count > 0 && (
+            <Badge className="ml-2 h-4 px-1.5 text-[10px] bg-destructive text-destructive-foreground">
+              {count}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
+      {children}
+    </Tabs>
   );
 }
 
