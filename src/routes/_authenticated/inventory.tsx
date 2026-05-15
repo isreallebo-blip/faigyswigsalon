@@ -734,7 +734,7 @@ function CustomOrderDialog({
     resolver: zodResolver(customOrderSchema),
     defaultValues: {
       client_id: order?.client_id ?? null,
-      vendor: order?.vendor ?? "",
+      vendor_id: order?.vendor_id ?? null,
       specs: order?.specs ?? "",
       expected_delivery: order?.expected_delivery ?? "",
       received_date: order?.received_date ?? "",
