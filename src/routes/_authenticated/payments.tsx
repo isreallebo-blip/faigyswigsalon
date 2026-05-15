@@ -104,12 +104,12 @@ function PaymentsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("*, client:client_id(full_name), account:bank_account_id(name)")
+        .select("*, client:client_id(full_name, display_id), account:bank_account_id(name)")
         .order("date", { ascending: false })
         .limit(200);
       if (error) throw error;
       return data as (Payment & {
-        client: { full_name: string } | null;
+        client: { full_name: string; display_id: string } | null;
         account: { name: string } | null;
       })[];
     },
@@ -156,6 +156,7 @@ function PaymentsTab() {
                       <Badge variant="secondary" className="capitalize">{p.category.replace("_", " ")}</Badge>
                       {p.voided_at && <Badge variant="destructive">Voided</Badge>}
                       <span className={`font-medium ${p.voided_at ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
+                      {p.client?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{p.client.display_id}</span>}
                       <span className="text-xs text-muted-foreground capitalize">· {p.method.replace("_", " ")}</span>
                       {p.account && <span className="text-xs text-muted-foreground">→ {p.account.name}</span>}
                     </div>

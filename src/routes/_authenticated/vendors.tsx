@@ -218,6 +218,7 @@ function VendorsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate font-medium">{v.name}</div>
+                        <div className="font-mono text-[10px] text-muted-foreground">{v.display_id}</div>
                         {v.company && (
                           <div className="truncate text-xs text-muted-foreground">{v.company}</div>
                         )}
@@ -557,6 +558,7 @@ function VendorDetail({ vendorId, onClose }: { vendorId: string; onClose: () => 
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{TYPE_LABEL[v.type]}</p>
           <h2 className="mt-0.5 font-display text-3xl">{v.name}</h2>
+          <p className="font-mono text-xs text-muted-foreground mt-0.5">{v.display_id}</p>
           {v.company && <p className="text-sm text-muted-foreground">{v.company}</p>}
           <Badge variant={v.status === "active" ? "secondary" : "outline"} className="mt-2">
             {v.status === "active" ? "Active" : "Inactive"}

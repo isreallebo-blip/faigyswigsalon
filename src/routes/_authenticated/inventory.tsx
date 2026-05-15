@@ -197,6 +197,7 @@ function WigCatalog() {
                       <div className="truncate text-sm font-medium">
                         {[w.brand, w.style].filter(Boolean).join(" ") || "Untitled"}
                       </div>
+                      <div className="font-mono text-[10px] text-muted-foreground">{w.display_id}</div>
                       <div className="truncate text-xs text-muted-foreground">
                         {[w.color, w.cap_size].filter(Boolean).join(" · ") || w.wig_code || "—"}
                       </div>
@@ -531,7 +532,8 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{w.wig_code || "Wig"}</p>
+          <p className="font-mono text-xs text-muted-foreground">{w.display_id}</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground mt-0.5">{w.wig_code || "Wig"}</p>
           <h2 className="font-display text-3xl">{[w.brand, w.style].filter(Boolean).join(" ") || "Untitled"}</h2>
           <div className="mt-2 flex items-center gap-2">
             <Badge variant={STATUS_VARIANT[w.status]}>{STATUS_LABEL[w.status]}</Badge>

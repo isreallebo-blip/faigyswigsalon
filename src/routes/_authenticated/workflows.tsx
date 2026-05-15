@@ -40,13 +40,13 @@ function WorkflowsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_workflows")
-        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code)")
+        .select("*, client:client_id(full_name, display_id), wig:wig_id(brand, style, wig_code, display_id)")
         .eq("status", tab === "open" ? "open" : "completed")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as (Workflow & {
-        client: { full_name: string } | null;
-        wig: { brand: string | null; style: string | null; wig_code: string | null } | null;
+        client: { full_name: string; display_id: string } | null;
+        wig: { brand: string | null; style: string | null; wig_code: string | null; display_id: string } | null;
       })[];
     },
   });
@@ -103,9 +103,11 @@ function WorkflowsPage() {
                           {WORKFLOW_LABEL[w.type]}
                         </Badge>
                         <span className="font-medium">{w.client?.full_name ?? "—"}</span>
+                        {w.client?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{w.client.display_id}</span>}
                       </div>
                       {w.wig && (
                         <p className="mt-1 text-xs text-muted-foreground">
+                          <span className="font-mono mr-1">{w.wig.display_id}</span>
                           {[w.wig.brand, w.wig.style, w.wig.wig_code].filter(Boolean).join(" · ")}
                         </p>
                       )}
