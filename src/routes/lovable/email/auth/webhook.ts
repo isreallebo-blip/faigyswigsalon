@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render as renderAsync } from '@react-email/components'
+import { render as renderAsync } from '@react-email/render'
 import { parseEmailWebhookPayload } from '@lovable.dev/email-js'
 import { WebhookError, verifyWebhookRequest } from '@lovable.dev/webhooks-js'
 import { createClient } from '@supabase/supabase-js'
