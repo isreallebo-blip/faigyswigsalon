@@ -76,13 +76,28 @@ export const getPortalMe = createServerFn({ method: "GET" })
     const { userId, claims } = context;
     const { data } = await supabaseAdmin
       .from("clients")
-      .select("id, display_id, full_name, email, phone, photo_url, self_registered")
+      .select("id, display_id, full_name, email, phone, photo_url, self_registered, sms_opt_in, email_opt_in")
       .eq("auth_user_id", userId)
       .maybeSingle();
     return {
       client: data,
       userEmail: (claims.email as string) ?? null,
     };
+  });
+
+export const getPortalUnreadCount = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const clientId = await resolveClientId(context.userId);
+    if (!clientId) return { count: 0 };
+    const { count } = await supabaseAdmin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("direction", "outbound")
+      .neq("channel", "internal_note")
+      .is("read_by_client_at", null);
+    return { count: count ?? 0 };
   });
 
 export const getPortalDashboard = createServerFn({ method: "GET" })
