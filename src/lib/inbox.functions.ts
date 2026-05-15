@@ -307,7 +307,7 @@ export const portalListMessages = createServerFn({ method: "GET" })
       .eq("conversation_id", conv.id)
       .eq("direction", "outbound")
       .is("read_by_client_at", null);
-    return { conversation: conv, messages: messages ?? [] };
+    return { conversation: conv as Conv, messages: (messages ?? []) as unknown as Msg[] };
   });
 
 export const portalSendMessage = createServerFn({ method: "POST" })
