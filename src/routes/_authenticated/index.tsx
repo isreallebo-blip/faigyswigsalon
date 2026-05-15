@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/")({
-  head: () => ({ meta: [{ title: "Dashboard — Maison" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Faigy's Wig Salon" }] }),
   component: Dashboard,
 });
 

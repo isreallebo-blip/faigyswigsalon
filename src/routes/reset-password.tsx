@@ -22,7 +22,7 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Set new password — Maison" }] }),
+  head: () => ({ meta: [{ title: "Set new password — Faigy's Wig Salon" }] }),
   component: ResetPasswordPage,
 });
 

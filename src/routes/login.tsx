@@ -26,7 +26,7 @@ export const Route = createFileRoute("/login")({
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: search.redirect });
   },
-  head: () => ({ meta: [{ title: "Sign in — Maison" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Faigy's Wig Salon" }] }),
   component: LoginPage,
 });
 
@@ -67,7 +67,7 @@ function LoginPage() {
         <img src={loginBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-tr from-background/40 via-transparent to-background/20" />
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
-          <div className="font-display text-3xl tracking-wide">Maison</div>
+          <div className="font-display text-3xl tracking-wide">Faigy's Wig Salon</div>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -92,7 +92,7 @@ function LoginPage() {
           className="w-full max-w-sm"
         >
           <div className="mb-10 lg:hidden">
-            <div className="font-display text-3xl">Maison</div>
+            <div className="font-display text-3xl">Faigy's Wig Salon</div>
             <p className="text-sm text-muted-foreground">Wig salon CRM</p>
           </div>
 
