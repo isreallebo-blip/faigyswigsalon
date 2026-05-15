@@ -553,11 +553,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         </Button>
       </div>
 
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        </TabsList>
+      <ClientProfileTabs clientId={clientId} client={c}>
         <TabsContent value="profile" className="space-y-4 pt-4">
           <Card>
             <CardContent className="p-5">
@@ -606,7 +602,14 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         <TabsContent value="timeline" className="pt-4">
           <ClientTimeline clientId={clientId} />
         </TabsContent>
-      </Tabs>
+        <TabsContent value="messages" className="pt-4">
+          <ClientMessages
+            clientId={clientId}
+            clientHasPhone={!!c.phone}
+            clientHasEmail={!!c.email}
+          />
+        </TabsContent>
+      </ClientProfileTabs>
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <ClientDialog
