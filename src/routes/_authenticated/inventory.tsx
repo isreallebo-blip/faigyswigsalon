@@ -60,7 +60,7 @@ type WigFormValues = z.infer<typeof wigSchema>;
 
 const customOrderSchema = z.object({
   client_id: z.string().uuid().nullable().optional(),
-  vendor: z.string().trim().max(120).optional().or(z.literal("")),
+  vendor_id: z.string().uuid().nullable().optional(),
   specs: z.string().trim().max(2000).optional().or(z.literal("")),
   expected_delivery: z.string().optional().or(z.literal("")),
   received_date: z.string().optional().or(z.literal("")),
