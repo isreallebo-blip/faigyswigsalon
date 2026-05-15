@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/appointments")({
 });
 
 function AppointmentsPage() {
-  const [view, setView] = useState<"day" | "week">("week");
+  const [view, setView] = useState<"day" | "week" | "month" | "year">("week");
   const [cursor, setCursor] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Appt | null>(null);
@@ -64,7 +64,11 @@ function AppointmentsPage() {
 
   const range = useMemo(() => {
     if (view === "day") return { from: startOfDay(cursor), to: endOfDay(cursor) };
-    return { from: startOfWeek(cursor), to: endOfWeek(cursor) };
+    if (view === "week") return { from: startOfWeek(cursor), to: endOfWeek(cursor) };
+    if (view === "month") {
+      return { from: startOfWeek(startOfMonth(cursor)), to: endOfWeek(endOfMonth(cursor)) };
+    }
+    return { from: startOfYear(cursor), to: endOfYear(cursor) };
   }, [view, cursor]);
 
   const appts = useQuery({
@@ -83,14 +87,42 @@ function AppointmentsPage() {
 
   const days = useMemo(() => {
     if (view === "day") return [cursor];
-    const start = startOfWeek(cursor);
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    if (view === "week") {
+      const start = startOfWeek(cursor);
+      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    }
+    if (view === "month") {
+      const start = startOfWeek(startOfMonth(cursor));
+      const end = endOfWeek(endOfMonth(cursor));
+      const count = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+      return Array.from({ length: count }, (_, i) => addDays(start, i));
+    }
+    return [];
+  }, [view, cursor]);
+
+  const months = useMemo(() => {
+    if (view !== "year") return [];
+    const start = startOfYear(cursor);
+    return Array.from({ length: 12 }, (_, i) => addMonths(start, i));
   }, [view, cursor]);
 
   const holidays = useMemo(
-    () => (showHolidays ? getHolidaysInRange(days[0], days[days.length - 1]) : []),
+    () => (showHolidays && days.length > 0 ? getHolidaysInRange(days[0], days[days.length - 1]) : []),
     [days, showHolidays],
   );
+
+  const goPrev = () => {
+    if (view === "day") setCursor(addDays(cursor, -1));
+    else if (view === "week") setCursor(subWeeks(cursor, 1));
+    else if (view === "month") setCursor(subMonths(cursor, 1));
+    else setCursor(subYears(cursor, 1));
+  };
+  const goNext = () => {
+    if (view === "day") setCursor(addDays(cursor, 1));
+    else if (view === "week") setCursor(addWeeks(cursor, 1));
+    else if (view === "month") setCursor(addMonths(cursor, 1));
+    else setCursor(addYears(cursor, 1));
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
