@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { Download, FileUp, Upload, AlertCircle } from "lucide-react";
@@ -53,9 +53,31 @@ export function ClientImportDialog({ open, onOpenChange }: Props) {
         parsed = result.data;
       } else {
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        parsed = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buf);
+        const sheet = wb.worksheets[0];
+        if (!sheet) throw new Error("No sheet found");
+        const headers: string[] = [];
+        const headerRow = sheet.getRow(1);
+        headerRow.eachCell((cell, col) => {
+          headers[col - 1] = String(cell.value ?? "").trim();
+        });
+        parsed = [];
+        for (let r = 2; r <= sheet.rowCount; r++) {
+          const row = sheet.getRow(r);
+          const obj: Record<string, string> = {};
+          let hasValue = false;
+          headers.forEach((h, i) => {
+            if (!h) return;
+            const v = row.getCell(i + 1).value;
+            const s = v == null ? "" : typeof v === "object" && "text" in (v as object)
+              ? String((v as { text: unknown }).text ?? "")
+              : String(v);
+            if (s) hasValue = true;
+            obj[h] = s;
+          });
+          if (hasValue) parsed.push(obj);
+        }
       }
     } catch (e) {
       toast.error(`Could not read file: ${(e as Error).message}`);
