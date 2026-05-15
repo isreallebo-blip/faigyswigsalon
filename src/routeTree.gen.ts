@@ -26,6 +26,7 @@ import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authent
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
+import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -114,6 +115,12 @@ const AuthenticatedSettingsUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsCalendarRoute =
+  AuthenticatedSettingsCalendarRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
+  '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -166,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/vendors': typeof AuthenticatedVendorsRoute
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/vendors'
     | '/workflows'
+    | '/settings/calendar'
     | '/settings/users'
     | '/api/public/send-reminders'
     | '/settings/'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/vendors'
     | '/workflows'
     | '/'
+    | '/settings/calendar'
     | '/settings/users'
     | '/api/public/send-reminders'
     | '/settings'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendors'
     | '/_authenticated/workflows'
     | '/_authenticated/'
+    | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/users'
     | '/api/public/send-reminders'
     | '/_authenticated/settings/'
@@ -356,15 +369,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsUsersRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/calendar': {
+      id: '/_authenticated/settings/calendar'
+      path: '/calendar'
+      fullPath: '/settings/calendar'
+      preLoaderRoute: typeof AuthenticatedSettingsCalendarRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
   }
 }
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsCalendarRoute: typeof AuthenticatedSettingsCalendarRoute
   AuthenticatedSettingsUsersRoute: typeof AuthenticatedSettingsUsersRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsCalendarRoute: AuthenticatedSettingsCalendarRoute,
   AuthenticatedSettingsUsersRoute: AuthenticatedSettingsUsersRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
