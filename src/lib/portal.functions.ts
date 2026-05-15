@@ -288,6 +288,8 @@ const updateProfileSchema = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   email: z.union([z.string().trim().email().max(255), z.literal("")]).optional(),
   photo_url: z.string().trim().max(2000).optional().or(z.literal("")),
+  sms_opt_in: z.boolean().optional(),
+  email_opt_in: z.boolean().optional(),
 });
 
 export const updatePortalProfile = createServerFn({ method: "POST" })
@@ -296,16 +298,25 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const clientId = await resolveClientId(context.userId);
     if (!clientId) throw new Error("No portal client linked");
-    const { error } = await supabaseAdmin
-      .from("clients")
-      .update({
-        full_name: data.full_name,
-        phone: data.phone || null,
-        email: data.email || null,
-        photo_url: data.photo_url || null,
-      })
-      .eq("id", clientId);
+    const update: Record<string, unknown> = {
+      full_name: data.full_name,
+      phone: data.phone || null,
+      email: data.email || null,
+      photo_url: data.photo_url || null,
+    };
+    if (typeof data.sms_opt_in === "boolean") update.sms_opt_in = data.sms_opt_in;
+    if (typeof data.email_opt_in === "boolean") update.email_opt_in = data.email_opt_in;
+    const { error } = await supabaseAdmin.from("clients").update(update).eq("id", clientId);
     if (error) throw error;
+    void logPortalActivity({
+      userId: context.userId,
+      userEmail: (context.claims.email as string) ?? null,
+      action: "update",
+      summary: "Client updated their profile",
+      recordId: clientId,
+    });
+    return { ok: true };
+  });
     void logPortalActivity({
       userId: context.userId,
       userEmail: (context.claims.email as string) ?? null,
