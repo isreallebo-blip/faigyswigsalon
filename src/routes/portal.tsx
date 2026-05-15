@@ -1,6 +1,10 @@
 import { createFileRoute, Outlet, Link, useLocation, redirect, useNavigate } from "@tanstack/react-router";
 import { Home, Calendar, Sparkles, CreditCard, User, LogOut, MessageSquare } from "lucide-react";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { getPortalUnreadCount } from "@/lib/portal.functions";
 
 export const Route = createFileRoute("/portal")({
   beforeLoad: async ({ location }) => {
