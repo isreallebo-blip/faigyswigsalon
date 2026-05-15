@@ -298,14 +298,14 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const clientId = await resolveClientId(context.userId);
     if (!clientId) throw new Error("No portal client linked");
-    const update: Record<string, unknown> = {
+    const update = {
       full_name: data.full_name,
       phone: data.phone || null,
       email: data.email || null,
       photo_url: data.photo_url || null,
+      ...(typeof data.sms_opt_in === "boolean" ? { sms_opt_in: data.sms_opt_in } : {}),
+      ...(typeof data.email_opt_in === "boolean" ? { email_opt_in: data.email_opt_in } : {}),
     };
-    if (typeof data.sms_opt_in === "boolean") update.sms_opt_in = data.sms_opt_in;
-    if (typeof data.email_opt_in === "boolean") update.email_opt_in = data.email_opt_in;
     const { error } = await supabaseAdmin.from("clients").update(update).eq("id", clientId);
     if (error) throw error;
     void logPortalActivity({
