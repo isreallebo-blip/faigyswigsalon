@@ -321,7 +321,12 @@ function ClientDialog({
       <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" error={form.formState.errors.full_name?.message}>
-            <Input {...form.register("full_name")} placeholder="Sarah Goldberg" />
+            <Input
+              {...form.register("full_name", {
+                onBlur: (e) => form.setValue("full_name", capitalizeName(e.target.value), { shouldDirty: true }),
+              })}
+              placeholder="Sarah Goldberg"
+            />
           </Field>
           <Field label="Status">
             <Select
