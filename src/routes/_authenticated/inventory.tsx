@@ -782,11 +782,22 @@ function CustomOrderDialog({
         notes: v.notes || null,
       };
       if (order) {
-        const { error } = await supabase.from("custom_orders").update(payload).eq("id", order.id);
+        const { data, error } = await supabase.from("custom_orders").update(payload).eq("id", order.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "custom_order", recordId: order.id, recordLabel: payload.specs ?? "Custom order",
+          summary: "Custom order updated",
+          before: order as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("custom_orders").insert(payload);
+        const { data, error } = await supabase.from("custom_orders").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "custom_order", recordId: data.id, recordLabel: payload.specs ?? "Custom order",
+          summary: "Custom order created",
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => {
