@@ -344,10 +344,22 @@ function ClientDialog({
             </Select>
           </Field>
           <Field label="Phone">
-            <Input {...form.register("phone")} placeholder="(555) 123-4567" />
+            <Input
+              value={form.watch("phone") ?? ""}
+              onChange={(e) => form.setValue("phone", formatPhoneTyping(e.target.value), { shouldDirty: true })}
+              onBlur={(e) => form.setValue("phone", formatPhone(e.target.value), { shouldDirty: true })}
+              placeholder="555-123-4567"
+              inputMode="tel"
+            />
           </Field>
           <Field label="Email" error={form.formState.errors.email?.message}>
-            <Input {...form.register("email")} type="email" placeholder="sarah@example.com" />
+            <Input
+              {...form.register("email", {
+                onBlur: (e) => form.setValue("email", normalizeEmail(e.target.value), { shouldDirty: true }),
+              })}
+              type="email"
+              placeholder="sarah@example.com"
+            />
           </Field>
         </div>
 
