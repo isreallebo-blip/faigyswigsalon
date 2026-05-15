@@ -96,8 +96,9 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-8">
       <div>
         <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-          {format(new Date(), "EEEE, MMMM d")}
+          {format(new Date(), "EEEE, MMMM d, yyyy")}
         </p>
+        <HebrewToday />
         <h1 className="mt-1 font-display text-4xl">Good day at the salon</h1>
       </div>
 
