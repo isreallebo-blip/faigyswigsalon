@@ -26,6 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientSelect } from "@/components/client-select";
+import { hebrewDateString, getHolidaysInRange, holidaysForDay, isShabbatColumn } from "@/lib/hebrew-calendar";
+import { useHebrewSettings } from "@/lib/use-hebrew-settings";
+import { cn } from "@/lib/utils";
 
 type Appt = Database["public"]["Tables"]["appointments"]["Row"];
 type ApptType = Database["public"]["Enums"]["appointment_type"];
@@ -53,6 +56,7 @@ function AppointmentsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Appt | null>(null);
   const qc = useQueryClient();
+  const { showDates, showHolidays } = useHebrewSettings();
 
   const range = useMemo(() => {
     if (view === "day") return { from: startOfDay(cursor), to: endOfDay(cursor) };
@@ -78,6 +82,11 @@ function AppointmentsPage() {
     const start = startOfWeek(cursor);
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [view, cursor]);
+
+  const holidays = useMemo(
+    () => (showHolidays ? getHolidaysInRange(days[0], days[days.length - 1]) : []),
+    [days, showHolidays],
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -126,13 +135,41 @@ function AppointmentsPage() {
         <div className={view === "day" ? "space-y-3" : "grid gap-3 md:grid-cols-2 lg:grid-cols-7"}>
           {days.map((day) => {
             const dayAppts = (appts.data ?? []).filter((a) => isSameDay(parseISO(a.starts_at), day));
+            const dayHolidays = holidaysForDay(day, holidays);
+            const isShabbat = isShabbatColumn(day);
             return (
-              <Card key={day.toISOString()} className={view === "week" ? "min-h-[200px]" : ""}>
+              <Card
+                key={day.toISOString()}
+                className={cn(
+                  view === "week" ? "min-h-[200px]" : "",
+                  isShabbat && "bg-gold-soft/10",
+                )}
+              >
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-baseline justify-between border-b border-border pb-2">
-                    <span className="font-display text-lg">{format(day, "EEE")}</span>
+                    <div className="flex flex-col">
+                      <span className="font-display text-lg">{format(day, "EEE")}</span>
+                      {showDates && (
+                        <span dir="rtl" className="text-[10px] text-muted-foreground">
+                          {hebrewDateString(day)}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">{format(day, "MMM d")}</span>
                   </div>
+                  {dayHolidays.length > 0 && (
+                    <div className="mb-2 space-y-1">
+                      {dayHolidays.map((h) => (
+                        <div
+                          key={h.title}
+                          dir="rtl"
+                          className="rounded-md bg-gold/15 px-2 py-1 text-right text-[11px] font-medium text-gold"
+                        >
+                          {h.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {dayAppts.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No appointments</p>
                   ) : (
