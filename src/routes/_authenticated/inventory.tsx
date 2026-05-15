@@ -10,6 +10,7 @@ import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
+import { triggerNotificationFn } from "@/lib/notifications/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -788,6 +789,7 @@ function CustomOrderDialog({
         notes: v.notes || null,
       };
       if (order) {
+        const prevReceived = order.received_date;
         const { data, error } = await supabase.from("custom_orders").update(payload).eq("id", order.id).select().single();
         if (error) throw error;
         await logAudit({
@@ -796,6 +798,12 @@ function CustomOrderDialog({
           before: order as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
         });
+        if (v.client_id && !prevReceived && payload.received_date) {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id, templateKey: "custom_order_arrived",
+            idempotencyKey: `co-arrived-${order.id}`,
+          }}).catch(() => {});
+        }
       } else {
         const { data, error } = await supabase.from("custom_orders").insert(payload).select().single();
         if (error) throw error;
@@ -804,6 +812,12 @@ function CustomOrderDialog({
           summary: "Custom order created",
           after: data as unknown as Record<string, unknown>,
         });
+        if (v.client_id && payload.received_date) {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id, templateKey: "custom_order_arrived",
+            idempotencyKey: `co-arrived-${data.id}`,
+          }}).catch(() => {});
+        }
       }
     },
     onSuccess: () => {
