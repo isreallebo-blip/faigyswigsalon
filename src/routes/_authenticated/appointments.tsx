@@ -136,13 +136,15 @@ function AppointmentsPage() {
             <TabsList>
               <TabsTrigger value="day">Day</TabsTrigger>
               <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button variant="outline" size="icon" onClick={() => setCursor(view === "day" ? addDays(cursor, -1) : subWeeks(cursor, 1))}>
+          <Button variant="outline" size="icon" onClick={goPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCursor(new Date())}>Today</Button>
-          <Button variant="outline" size="icon" onClick={() => setCursor(view === "day" ? addDays(cursor, 1) : addWeeks(cursor, 1))}>
+          <Button variant="outline" size="icon" onClick={goNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Dialog open={open || !!editing} onOpenChange={(o) => { if (!o) { setOpen(false); setEditing(null); } }}>
@@ -160,9 +162,10 @@ function AppointmentsPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {view === "day"
-          ? format(cursor, "EEEE, MMMM d, yyyy")
-          : `${format(range.from, "MMM d")} – ${format(range.to, "MMM d, yyyy")}`}
+        {view === "day" && format(cursor, "EEEE, MMMM d, yyyy")}
+        {view === "week" && `${format(range.from, "MMM d")} – ${format(range.to, "MMM d, yyyy")}`}
+        {view === "month" && format(cursor, "MMMM yyyy")}
+        {view === "year" && format(cursor, "yyyy")}
       </p>
 
       {appts.isLoading ? (
