@@ -307,17 +307,28 @@ function VendorDialog({
           .from("vendors")
           .update(payload)
           .eq("id", vendor.id)
-          .select("id")
+          .select("*")
           .single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "vendor", recordId: data.id, recordLabel: data.name,
+          summary: `Vendor ${data.name} updated`,
+          before: vendor as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
       const { data, error } = await supabase
         .from("vendors")
         .insert(payload)
-        .select("id")
+        .select("*")
         .single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "vendor", recordId: data.id, recordLabel: data.name,
+        summary: `Vendor ${data.name} created`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
