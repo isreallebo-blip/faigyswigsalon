@@ -395,6 +395,14 @@ function WigDialog({
           )}
         </div>
 
+        <Field label="Vendor (supplier)">
+          <VendorSelect
+            value={form.watch("vendor_id") ?? null}
+            onChange={(id) => form.setValue("vendor_id", id, { shouldDirty: true })}
+            filterType="supplier"
+          />
+        </Field>
+
         <Field label="Notes">
           <Textarea rows={2} {...form.register("notes")} />
         </Field>
