@@ -182,11 +182,22 @@ function RepairDialog({ repair, onClose, onSaved }: { repair: Repair | null; onC
         status: v.status,
       };
       if (repair) {
-        const { error } = await supabase.from("repairs").update(payload).eq("id", repair.id);
+        const { data, error } = await supabase.from("repairs").update(payload).eq("id", repair.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "repair", recordId: repair.id, recordLabel: payload.vendor,
+          summary: "Repair updated",
+          before: repair as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("repairs").insert(payload);
+        const { data, error } = await supabase.from("repairs").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "repair", recordId: data.id, recordLabel: payload.vendor,
+          summary: `Repair sent to ${payload.vendor}`,
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
@@ -198,6 +209,11 @@ function RepairDialog({ repair, onClose, onSaved }: { repair: Repair | null; onC
       if (!repair) return;
       const { error } = await supabase.from("repairs").delete().eq("id", repair.id);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "repair", recordId: repair.id, recordLabel: repair.vendor,
+        summary: "Repair deleted",
+        before: repair as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => { toast.success("Repair removed"); onSaved(); },
   });
