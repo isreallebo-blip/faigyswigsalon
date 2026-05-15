@@ -161,3 +161,39 @@ function Field({
     </div>
   );
 }
+
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="w-full flex items-start justify-between gap-3 text-left"
+    >
+      <div>
+        <div className="text-sm font-medium text-[oklch(0.20_0.01_60)]">{label}</div>
+        {description && (
+          <div className="text-[11px] text-[oklch(0.45_0.02_60)] mt-0.5">{description}</div>
+        )}
+      </div>
+      <span
+        className="mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition"
+        style={{ background: checked ? "oklch(0.55 0.13 75)" : "oklch(0.85 0.02 80)" }}
+      >
+        <span
+          className="inline-block h-5 w-5 rounded-full bg-white transition"
+          style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+        />
+      </span>
+    </button>
+  );
+}
