@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import loginBg from "@/assets/login-bg.jpg";
+import { ensureBootstrapAdmin } from "@/lib/bootstrap.functions";
+import { recordLastLogin } from "@/lib/admin-users.functions";
 
 const schema = z.object({
   email: z.string().trim().email("Invalid email").max(255),
@@ -31,8 +33,12 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
+
+  // Fire-and-forget bootstrap on first load.
+  useEffect(() => {
+    ensureBootstrapAdmin().catch(() => {});
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -42,22 +48,14 @@ function LoginPage() {
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword(values);
-        if (error) throw error;
-        toast.success("Welcome back");
-        navigate({ to: search.redirect });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email: values.email,
-          password: values.password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account");
-      }
+      const { error } = await supabase.auth.signInWithPassword(values);
+      if (error) throw error;
+      // Record last login (non-blocking).
+      recordLastLogin().catch(() => {});
+      toast.success("Welcome back");
+      navigate({ to: search.redirect });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Authentication failed");
+      toast.error(e instanceof Error ? e.message : "Sign in failed");
     } finally {
       setSubmitting(false);
     }
@@ -98,10 +96,8 @@ function LoginPage() {
             <p className="text-sm text-muted-foreground">Wig salon CRM</p>
           </div>
 
-          <h1 className="font-display text-3xl">{mode === "signin" ? "Sign in" : "Create account"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Welcome back to your salon." : "Set up your staff account."}
-          </p>
+          <h1 className="font-display text-3xl">Sign in</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Welcome back to your salon.</p>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-4">
             <div className="space-y-2">
@@ -112,24 +108,37 @@ function LoginPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} {...form.register("password")} />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                {...form.register("password")}
+              />
               {form.formState.errors.password && (
                 <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
               )}
             </div>
-            <Button type="submit" disabled={submitting} className="w-full bg-primary text-primary-foreground hover:opacity-90">
-              {submitting ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-primary text-primary-foreground hover:opacity-90"
+            >
+              {submitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="mt-6 w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            {mode === "signin" ? "New to Maison? Create a staff account" : "Already have an account? Sign in"}
-          </button>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Access is invite-only. Contact your salon admin if you need an account.
+          </p>
         </motion.div>
       </div>
     </div>
