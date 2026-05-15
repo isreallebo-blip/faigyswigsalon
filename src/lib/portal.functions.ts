@@ -106,10 +106,10 @@ export const getPortalDashboard = createServerFn({ method: "GET" })
         .from("repairs")
         .select("id, status, expected_return")
         .eq("client_id", clientId)
-        .neq("status", "completed"),
+        .in("status", ["in_progress", "sent_to_vendor", "issue"]),
       supabaseAdmin
         .from("payments")
-        .select("amount, category, voided_at")
+        .select("amount, voided_at")
         .eq("client_id", clientId),
       supabaseAdmin
         .from("appointments")
