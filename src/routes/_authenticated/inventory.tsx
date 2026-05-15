@@ -297,7 +297,7 @@ function WigDialog({
         const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("*").single();
         if (error) throw error;
         await logAudit({
-          action: "update", module: "inventory", recordId: data.id, recordLabel: label,
+          action: "update", module: "inventory", recordId: data.id, recordLabel: label, displayId: data.display_id,
           summary: `Wig ${label} updated`,
           before: wig as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
@@ -307,7 +307,7 @@ function WigDialog({
       const { data, error } = await supabase.from("wigs").insert(payload).select("*").single();
       if (error) throw error;
       await logAudit({
-        action: "create", module: "inventory", recordId: data.id, recordLabel: label,
+        action: "create", module: "inventory", recordId: data.id, recordLabel: label, displayId: data.display_id,
         summary: `Wig ${label} added to inventory`,
         after: data as unknown as Record<string, unknown>,
       });
@@ -501,7 +501,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
       const { error } = await supabase.from("wigs").delete().eq("id", wigId);
       if (error) throw error;
       await logAudit({
-        action: "delete", module: "inventory", recordId: wigId, recordLabel: label,
+        action: "delete", module: "inventory", recordId: wigId, recordLabel: label, displayId: w?.display_id,
         summary: `Wig ${label} deleted`,
         before: w as unknown as Record<string, unknown>,
       });

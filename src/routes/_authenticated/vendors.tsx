@@ -312,7 +312,7 @@ function VendorDialog({
           .single();
         if (error) throw error;
         await logAudit({
-          action: "update", module: "vendor", recordId: data.id, recordLabel: data.name,
+          action: "update", module: "vendor", recordId: data.id, recordLabel: data.name, displayId: data.display_id,
           summary: `Vendor ${data.name} updated`,
           before: vendor as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
@@ -326,7 +326,7 @@ function VendorDialog({
         .single();
       if (error) throw error;
       await logAudit({
-        action: "create", module: "vendor", recordId: data.id, recordLabel: data.name,
+        action: "create", module: "vendor", recordId: data.id, recordLabel: data.name, displayId: data.display_id,
         summary: `Vendor ${data.name} created`,
         after: data as unknown as Record<string, unknown>,
       });
@@ -521,7 +521,7 @@ function VendorDetail({ vendorId, onClose }: { vendorId: string; onClose: () => 
       const { error } = await supabase.from("vendors").delete().eq("id", vendorId);
       if (error) throw error;
       await logAudit({
-        action: "delete", module: "vendor", recordId: vendorId, recordLabel: label,
+        action: "delete", module: "vendor", recordId: vendorId, recordLabel: label, displayId: vendor.data?.display_id,
         summary: `Vendor ${label} deleted`,
         before: vendor.data as unknown as Record<string, unknown>,
       });
