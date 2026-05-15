@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Wrench,
   Wallet,
+  Building2,
   Settings as SettingsIcon,
   LogOut,
   Menu,
