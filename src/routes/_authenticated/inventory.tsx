@@ -617,12 +617,13 @@ function CustomOrders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_orders")
-        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code)")
+        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code), vendor_ref:vendor_id(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as (CustomOrder & {
         client: { full_name: string } | null;
         wig: { brand: string | null; style: string | null; wig_code: string | null } | null;
+        vendor_ref: { name: string } | null;
       })[];
     },
   });
