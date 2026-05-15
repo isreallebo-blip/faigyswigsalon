@@ -221,7 +221,16 @@ export async function sendNotification(opts: {
     } else {
       html = plainEmailHtml(applyVars(tpl.email_body, filledVars));
     }
-    const r = await sendEmail(client.email!, subject, html);
+    // Wire Reply-To so client replies thread back into the inbox.
+    let replyTo: string | undefined;
+    let conversationId: string | undefined;
+    try {
+      conversationId = await getOrCreateOpenConversation(clientId, subject, "email");
+      replyTo = replyToForConversation(conversationId);
+    } catch {
+      // If conversation creation fails, still send the email without Reply-To.
+    }
+    const r = await sendEmail(client.email!, subject, html, replyTo);
     results.push({ channel: "email", status: r.error ? "failed" : "sent", error: r.error });
     await supabaseAdmin.from("notification_log").insert({
       client_id: clientId, template_key: templateKey, channel: "email",
@@ -229,6 +238,24 @@ export async function sendNotification(opts: {
       error_message: r.error ?? null, provider_message_id: r.id ?? null,
       idempotency_key: idempotencyKey ? `${idempotencyKey}:email` : null,
     });
+    // Mirror into messages so the outbound notification shows up in the thread.
+    if (conversationId && !r.error) {
+      try {
+        await appendMessage({
+          conversationId,
+          clientId,
+          direction: "outbound",
+          channel: "email",
+          body: applyVars(tpl.email_body, filledVars),
+          subject,
+          senderName: "System",
+          providerMessageId: r.id ?? null,
+          deliveryStatus: "sent",
+        });
+      } catch {
+        // best-effort
+      }
+    }
   }
 
   return { ok: true, results };
