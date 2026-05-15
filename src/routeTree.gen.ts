@@ -18,6 +18,7 @@ import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PortalWigsRouteImport } from './routes/portal.wigs'
 import { Route as PortalVerifyRouteImport } from './routes/portal.verify'
+import { Route as PortalSignupRouteImport } from './routes/portal.signup'
 import { Route as PortalRepairsRouteImport } from './routes/portal.repairs'
 import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalPaymentsRouteImport } from './routes/portal.payments'
@@ -89,6 +90,11 @@ const PortalWigsRoute = PortalWigsRouteImport.update({
 const PortalVerifyRoute = PortalVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSignupRoute = PortalSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalRepairsRoute = PortalRepairsRouteImport.update({
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
+  '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
   '/portal/': typeof PortalIndexRoute
@@ -295,6 +302,7 @@ export interface FileRoutesByTo {
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
+  '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
   '/': typeof AuthenticatedIndexRoute
@@ -335,6 +343,7 @@ export interface FileRoutesById {
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
+  '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -376,6 +385,7 @@ export interface FileRouteTypes {
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
+    | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
     | '/portal/'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
+    | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
     | '/'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
+    | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
     | '/_authenticated/'
@@ -547,6 +559,13 @@ declare module '@tanstack/react-router' {
       path: '/verify'
       fullPath: '/portal/verify'
       preLoaderRoute: typeof PortalVerifyRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/signup': {
+      id: '/portal/signup'
+      path: '/signup'
+      fullPath: '/portal/signup'
+      preLoaderRoute: typeof PortalSignupRouteImport
       parentRoute: typeof PortalRoute
     }
     '/portal/repairs': {
@@ -806,6 +825,7 @@ interface PortalRouteChildren {
   PortalPaymentsRoute: typeof PortalPaymentsRoute
   PortalProfileRoute: typeof PortalProfileRoute
   PortalRepairsRoute: typeof PortalRepairsRoute
+  PortalSignupRoute: typeof PortalSignupRoute
   PortalVerifyRoute: typeof PortalVerifyRoute
   PortalWigsRoute: typeof PortalWigsRoute
   PortalIndexRoute: typeof PortalIndexRoute
@@ -818,6 +838,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalPaymentsRoute: PortalPaymentsRoute,
   PortalProfileRoute: PortalProfileRoute,
   PortalRepairsRoute: PortalRepairsRoute,
+  PortalSignupRoute: PortalSignupRoute,
   PortalVerifyRoute: PortalVerifyRoute,
   PortalWigsRoute: PortalWigsRoute,
   PortalIndexRoute: PortalIndexRoute,
