@@ -623,7 +623,41 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | undefined }) {
+function ClientProfileTabs({
+  clientId,
+  client,
+  children,
+}: {
+  clientId: string;
+  client: Client;
+  children: React.ReactNode;
+}) {
+  const unreadFn = useServerFn(getClientUnreadCount);
+  const { data: unread } = useQuery({
+    queryKey: ["client-unread", clientId],
+    queryFn: () => unreadFn({ data: { clientId } }),
+    refetchInterval: 30000,
+  });
+  void client;
+  const count = unread?.count ?? 0;
+  return (
+    <Tabs defaultValue="profile">
+      <TabsList>
+        <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="timeline">Timeline</TabsTrigger>
+        <TabsTrigger value="messages" className="relative">
+          Messages
+          {count > 0 && (
+            <Badge className="ml-2 h-4 px-1.5 text-[10px] bg-destructive text-destructive-foreground">
+              {count}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
+      {children}
+    </Tabs>
+  );
+}
   return (
     <div className="rounded-md bg-muted/50 p-3">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
