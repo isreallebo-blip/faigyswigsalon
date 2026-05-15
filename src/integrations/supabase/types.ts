@@ -14,7 +14,608 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          data: Json
+          id: string
+          ref_id: string | null
+          ref_table: string | null
+          summary: string
+          type: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          ref_id?: string | null
+          ref_table?: string | null
+          summary: string
+          type: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          ref_id?: string | null
+          ref_table?: string | null
+          summary?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          client_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          notes: string | null
+          reminder_24h_sent_at: string | null
+          reminder_2h_sent_at: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          type: Database["public"]["Enums"]["appointment_type"]
+          updated_at: string
+          workflow_id: string | null
+          workflow_step_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          type: Database["public"]["Enums"]["appointment_type"]
+          updated_at?: string
+          workflow_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          type?: Database["public"]["Enums"]["appointment_type"]
+          updated_at?: string
+          workflow_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "service_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_workflow_step_id_fkey"
+            columns: ["workflow_step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          starting_balance: number
+          type: Database["public"]["Enums"]["bank_account_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          starting_balance?: number
+          type?: Database["public"]["Enums"]["bank_account_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          starting_balance?: number
+          type?: Database["public"]["Enums"]["bank_account_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bank_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          is_matched: boolean
+          matched_payment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          is_matched?: boolean
+          matched_payment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          is_matched?: boolean
+          matched_payment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_matched_payment_id_fkey"
+            columns: ["matched_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          measurements: Json
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          preferences: string | null
+          status: Database["public"]["Enums"]["client_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          measurements?: Json
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          preferences?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          measurements?: Json
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          preferences?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      custom_orders: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          expected_delivery: string | null
+          id: string
+          notes: string | null
+          received_date: string | null
+          specs: string | null
+          updated_at: string
+          vendor: string | null
+          wig_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          received_date?: string | null
+          specs?: string | null
+          updated_at?: string
+          vendor?: string | null
+          wig_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          received_date?: string | null
+          specs?: string | null
+          updated_at?: string
+          vendor?: string | null
+          wig_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_orders_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category: Database["public"]["Enums"]["payment_category"]
+          client_id: string | null
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category?: Database["public"]["Enums"]["payment_category"]
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category?: Database["public"]["Enums"]["payment_category"]
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_account_fk"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      repairs: {
+        Row: {
+          actual_return: string | null
+          client_id: string | null
+          cost: number | null
+          created_at: string
+          date_sent: string
+          expected_return: string | null
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["repair_status"]
+          updated_at: string
+          vendor: string
+          wig_id: string | null
+          work_requested: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          actual_return?: string | null
+          client_id?: string | null
+          cost?: number | null
+          created_at?: string
+          date_sent?: string
+          expected_return?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["repair_status"]
+          updated_at?: string
+          vendor: string
+          wig_id?: string | null
+          work_requested?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          actual_return?: string | null
+          client_id?: string | null
+          cost?: number | null
+          created_at?: string
+          date_sent?: string
+          expected_return?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["repair_status"]
+          updated_at?: string
+          vendor?: string
+          wig_id?: string | null
+          work_requested?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repairs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repairs_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repairs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "service_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_workflows: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["workflow_status"]
+          type: Database["public"]["Enums"]["workflow_type"]
+          updated_at: string
+          wig_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["workflow_status"]
+          type: Database["public"]["Enums"]["workflow_type"]
+          updated_at?: string
+          wig_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["workflow_status"]
+          type?: Database["public"]["Enums"]["workflow_type"]
+          updated_at?: string
+          wig_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_workflows_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_workflows_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wigs: {
+        Row: {
+          brand: string | null
+          cap_size: string | null
+          color: string | null
+          cost: number | null
+          created_at: string
+          hair_type: Database["public"]["Enums"]["hair_type"] | null
+          id: string
+          notes: string | null
+          photos: string[]
+          price: number | null
+          quantity: number
+          reserved_for_client_id: string | null
+          status: Database["public"]["Enums"]["wig_status"]
+          style: string | null
+          updated_at: string
+          wig_code: string | null
+        }
+        Insert: {
+          brand?: string | null
+          cap_size?: string | null
+          color?: string | null
+          cost?: number | null
+          created_at?: string
+          hair_type?: Database["public"]["Enums"]["hair_type"] | null
+          id?: string
+          notes?: string | null
+          photos?: string[]
+          price?: number | null
+          quantity?: number
+          reserved_for_client_id?: string | null
+          status?: Database["public"]["Enums"]["wig_status"]
+          style?: string | null
+          updated_at?: string
+          wig_code?: string | null
+        }
+        Update: {
+          brand?: string | null
+          cap_size?: string | null
+          color?: string | null
+          cost?: number | null
+          created_at?: string
+          hair_type?: Database["public"]["Enums"]["hair_type"] | null
+          id?: string
+          notes?: string | null
+          photos?: string[]
+          price?: number | null
+          quantity?: number
+          reserved_for_client_id?: string | null
+          status?: Database["public"]["Enums"]["wig_status"]
+          style?: string | null
+          updated_at?: string
+          wig_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wigs_reserved_for_client_id_fkey"
+            columns: ["reserved_for_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          data: Json
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["step_status"]
+          step_key: string
+          step_label: string
+          step_order: number
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["step_status"]
+          step_key: string
+          step_label: string
+          step_order: number
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["step_status"]
+          step_key?: string
+          step_label?: string
+          step_order?: number
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "service_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +624,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      appointment_status:
+        | "scheduled"
+        | "confirmed"
+        | "completed"
+        | "no_show"
+        | "cancelled"
+      appointment_type: "consultation" | "cut" | "wash_set" | "pickup"
+      bank_account_type: "bank" | "cc_processor"
+      client_status: "new_consultation" | "active" | "inactive"
+      hair_type: "human" | "synthetic"
+      payment_category: "wig_sale" | "cut" | "wash_set" | "repair" | "other"
+      payment_method: "cash" | "check" | "credit_card" | "zelle" | "other"
+      repair_status: "sent_to_vendor" | "in_progress" | "returned" | "issue"
+      step_status: "pending" | "in_progress" | "completed" | "skipped"
+      wig_status: "available" | "reserved" | "sent_for_repair" | "sold"
+      workflow_status: "open" | "completed" | "cancelled"
+      workflow_type: "sale_cut" | "wash_set"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +767,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      appointment_status: [
+        "scheduled",
+        "confirmed",
+        "completed",
+        "no_show",
+        "cancelled",
+      ],
+      appointment_type: ["consultation", "cut", "wash_set", "pickup"],
+      bank_account_type: ["bank", "cc_processor"],
+      client_status: ["new_consultation", "active", "inactive"],
+      hair_type: ["human", "synthetic"],
+      payment_category: ["wig_sale", "cut", "wash_set", "repair", "other"],
+      payment_method: ["cash", "check", "credit_card", "zelle", "other"],
+      repair_status: ["sent_to_vendor", "in_progress", "returned", "issue"],
+      step_status: ["pending", "in_progress", "completed", "skipped"],
+      wig_status: ["available", "reserved", "sent_for_repair", "sold"],
+      workflow_status: ["open", "completed", "cancelled"],
+      workflow_type: ["sale_cut", "wash_set"],
+    },
   },
 } as const
