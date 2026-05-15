@@ -612,6 +612,7 @@ function ReconcileTab() {
         .from("payments")
         .select("*, client:client_id(full_name)")
         .eq("bank_account_id", acctId!)
+        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return (data as (Payment & { client: { full_name: string } | null })[]).filter((p) => !matchedIds.has(p.id));
