@@ -652,6 +652,7 @@ function CustomOrders() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("custom_orders").delete().eq("id", id);
       if (error) throw error;
+      await logAudit({ action: "delete", module: "custom_order", recordId: id, summary: "Custom order deleted" });
     },
     onSuccess: () => {
       toast.success("Custom order removed");
