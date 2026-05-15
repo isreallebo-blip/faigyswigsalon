@@ -102,22 +102,31 @@ function ClientsPage() {
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Roster</p>
           <h1 className="mt-1 font-display text-4xl">Clients</h1>
         </div>
-        <Dialog open={openNew} onOpenChange={setOpenNew}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> New client
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button variant="outline" className="gap-2" onClick={() => setOpenImport(true)}>
+              <FileSpreadsheet className="h-4 w-4" /> Import clients
             </Button>
-          </DialogTrigger>
-          <ClientDialog
-            mode="create"
-            onClose={() => setOpenNew(false)}
-            onSaved={(id) => {
-              setOpenNew(false);
-              setSelectedId(id);
-            }}
-          />
-        </Dialog>
+          )}
+          <Dialog open={openNew} onOpenChange={setOpenNew}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> New client
+              </Button>
+            </DialogTrigger>
+            <ClientDialog
+              mode="create"
+              onClose={() => setOpenNew(false)}
+              onSaved={(id) => {
+                setOpenNew(false);
+                setSelectedId(id);
+              }}
+            />
+          </Dialog>
+        </div>
       </div>
+
+      {isAdmin && <ClientImportDialog open={openImport} onOpenChange={setOpenImport} />}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
