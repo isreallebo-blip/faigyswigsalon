@@ -9,6 +9,7 @@ import {
   Wrench,
   Wallet,
   Building2,
+  MessageSquare,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -73,6 +74,7 @@ const baseNav = [
   { to: "/appointments", label: "Appointments", icon: CalendarDays },
   { to: "/repairs", label: "Repairs", icon: Wrench },
   { to: "/payments", label: "Payments", icon: Wallet },
+  { to: "/inbox", label: "Inbox", icon: MessageSquare },
 ] as const;
 const adminNav = [{ to: "/settings", label: "Settings", icon: SettingsIcon }] as const;
 

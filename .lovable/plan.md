@@ -1,117 +1,139 @@
-# Client Notifications — SMS (Twilio) + Email (Resend)
 
-A complete notification system that sends both SMS and email to clients on key events, with admin-editable templates, per-client opt-in/out, automatic reminders, delivery logging, and STOP-keyword compliance.
+# Client Messaging Inbox
+
+Builds on the existing notification engine (Twilio + Resend already wired). Adds two-way messaging — clients reply to SMS/email and threads land in a CRM inbox; clients can also start threads from the portal.
 
 ## 1. Database
 
-### `notification_templates`
-Admin-editable templates (one row per type). Seeded with the 11 templates below.
-- `key` (text, unique) — e.g. `appointment_confirmation`
-- `label` (text) — e.g. "Appointment confirmation"
-- `category` (text) — appointment / wig / payment / wash_set
-- `enabled` (bool, default true) — global on/off
-- `sms_body` (text) — with `[First Name]`, `[Date]`, etc. placeholders
-- `email_subject` (text)
-- `email_body` (text) — same placeholder set
-- `send_email` (bool, default true), `send_sms` (bool, default true)
+New tables (migration):
 
-### `notification_log`
-Every send attempt — one row per channel.
-- `client_id`, `template_key`, `channel` ('sms' | 'email')
-- `recipient` (phone or email), `subject`, `body`
-- `status` ('sent' | 'delivered' | 'failed'), `error_message`
-- `provider_message_id`, `metadata` (jsonb), `created_at`
-- `idempotency_key` (text, unique nullable) — prevents double-sends
+- **`conversations`**
+  - `client_id` (FK), `subject` (text, nullable — for email threads)
+  - `status` enum: `unread | read | replied | resolved`
+  - `last_message_at`, `last_message_preview` (denormalized for inbox feed)
+  - `assigned_to` (uuid → profiles, nullable)
+  - `auto_reply_sent_at` (for 24h dedupe)
 
-### `clients` — new columns
-- `sms_opt_in` (bool, default true)
-- `email_opt_in` (bool, default true)
-- `outstanding_balance_reminded_at` (timestamptz)
+- **`messages`**
+  - `conversation_id` (FK), `client_id` (denormalized for RLS speed)
+  - `direction` enum: `inbound | outbound`
+  - `channel` enum: `sms | email | portal | internal_note`
+  - `body` (text), `subject` (text, email only)
+  - `sender_user_id` (staff who sent) / null for client/system
+  - `provider_message_id` (Twilio SID / Resend id / inbound email message-id)
+  - `delivery_status` enum: `queued | sent | delivered | read | failed`
+  - `read_by_staff_at`, `read_by_client_at`
+  - `metadata` jsonb
 
-### `appointments` — new column
-- `last_notified_starts_at` (timestamptz) — to detect reschedules
+- **`broadcasts`**
+  - `sent_by` (uuid), `channel` enum, `body`, `email_subject`
+  - `recipient_filter` jsonb, `recipient_count` int
+  - `sent_count`, `delivered_count`, `failed_count`
+  - timestamps
 
-### Seed data
-Insert the 11 templates with the exact copy from the spec.
+- **`broadcast_recipients`** — per-client delivery row (status, message_id, error)
 
-### RLS
-- Templates: staff manages; portal users read enabled ones.
-- Log: staff reads/writes; portal users read their own.
+- **`messaging_settings`** — single-row table:
+  - `business_hours` jsonb (per-day open/close), `timezone`
+  - `auto_reply_enabled`, `auto_reply_body`
+  - `default_reply_channel` enum
+  - `default_assignee` (uuid)
 
-## 2. Server logic
+RLS:
+- Staff: full read/write on all tables.
+- Portal client: read/insert own `conversations` + `messages` (only `channel='portal'` outbound from client side, never `internal_note`). Cannot see `internal_note` rows.
+- `audit_logs` already covers all writes.
 
-### `src/lib/notifications/send.functions.ts`
-Single core server function `sendNotification({ clientId, templateKey, vars, idempotencyKey? })`:
-1. Loads template; bails if `enabled = false`.
-2. Loads client; resolves channels by `template.send_*` AND `client.*_opt_in` AND contact-on-file (fallback rule: if only one method exists, use it even if the other is on).
-3. Renders placeholders: `[First Name]`, `[Last Name]`, `[Date]`, `[Time]`, `[Amount]`, `[Hebrew Date]` (via `@hebcal/core`), `[CLT ID]`, `[Appointment Type]`.
-4. SMS via Twilio gateway (appends `Reply STOP to unsubscribe`); Email via Resend gateway.
-5. Inserts a `notification_log` row per channel with status + provider IDs + error.
-6. Idempotency key prevents duplicates on retry.
+Indexes: `messages(conversation_id, created_at)`, `conversations(status, last_message_at desc)`, `conversations(client_id)`.
 
-### Trigger wiring (called from existing staff mutations)
-- `appointments` insert → `appointment_confirmation`
-- `appointments` update of `starts_at` → `appointment_rescheduled`
-- `appointments` status → `cancelled` → `appointment_cancelled`
-- `repairs` status → `sent_to_vendor` → `wig_sent_to_repair`
-- `repairs` status → `returned` OR wig status → `ready_for_pickup` → `wig_ready_for_pickup`
-- `custom_orders` set `received_date` → `custom_order_arrived`
-- `payments` insert → `payment_received` (SMS) + `payment_receipt` (email-only formatted receipt)
-- `service_workflows` wash & set drop-off step → `wash_set_dropoff`
-- `service_workflows` wash & dry step complete → `wash_set_ready`
+## 2. Inbound webhooks (server routes under `/api/public/`)
 
-### Cron jobs (`/api/public/hooks/*` + pg_cron, every 15 min)
-- `appointment-reminders-24h` — appointments with `starts_at` between now+23.5h and now+24.5h, no `reminder_24h_sent_at` → send + stamp.
-- `appointment-reminders-2h` — same logic with 2h window + `reminder_2h_sent_at`.
-- `outstanding-balance-reminder` — clients with positive balance older than 7 days and null `outstanding_balance_reminded_at` → send + stamp (one-shot).
+- **`/api/public/hooks/twilio-inbound`** (POST)
+  - Verify Twilio signature (`X-Twilio-Signature` HMAC-SHA1 with auth token).
+  - Match `From` phone → `clients.phone`. If no match → log to a `messages` row with `client_id=null` (unmatched bucket) — staff can later link.
+  - If body is `STOP`/`START`/`UNSUB` → toggle `clients.sms_opt_in` (already implemented STOP path; extend with START to re-enable).
+  - Otherwise create/find open conversation (most recent non-resolved for client) → insert inbound message → set `conversations.status='unread'`, bump `last_message_*`.
+  - Trigger auto-reply if outside business hours and not already sent in last 24h.
+  - Notify staff (see §6).
 
-### Twilio inbound webhook `/api/public/hooks/twilio-sms-inbound`
-- Verifies Twilio signature.
-- If body is `STOP` (case-insensitive), set `clients.sms_opt_in = false` for matching phone.
+- **`/api/public/hooks/resend-inbound`** (POST)
+  - Resend Inbound Emails webhook. Verify svix signature.
+  - Parse `In-Reply-To` / `References` headers → match to existing `messages.provider_message_id` to find conversation.
+  - Otherwise match by `from` email → client; new conversation.
+  - Insert inbound message, same flow as SMS.
 
-## 3. Portal UI
+- **`/api/public/hooks/twilio-status`** (POST) — delivery status callbacks → update `messages.delivery_status`.
+- **`/api/public/hooks/resend-events`** (POST) — `email.delivered`, `email.opened`, `email.bounced` → update status.
 
-`portal.profile.tsx` — add **Notification preferences** card with two switches (SMS / Email). Disable the toggle that would result in both being off (must keep at least one on); show inline helper text.
+Reply-To strategy for email: outbound notification emails set `Reply-To: inbox+<conversation_id>@notify.faigyswigsalon.com` so replies route correctly even without threading headers.
+
+## 3. Server functions (`src/lib/inbox.functions.ts`)
+
+- `listConversations({ filter, search, dateRange })` — staff inbox feed
+- `getConversation(id)` — messages + client + assignment
+- `sendStaffReply({ conversationId, body, channel })` — sends via Twilio/Resend, logs to `notification_log` + `messages`, marks conversation `replied`
+- `addInternalNote({ conversationId, body })`
+- `assignConversation({ conversationId, userId })`
+- `markResolved(id)` / `markRead(id)`
+- `sendQuickMessage({ clientId, body, channel })` — from client profile
+- `sendPortalMessage({ body })` (uses `requireSupabaseAuth` → `current_client_id()`) — creates inbound `channel='portal'` message
+- `listPortalMessages()` — client's own thread
+- `sendBroadcast({ filter, channel, body, emailSubject })` — resolves recipients, enqueues sends, logs `broadcasts` + `broadcast_recipients`
+- `previewBroadcastRecipients(filter)` — returns count + sample names
+- `getMessagingSettings()` / `updateMessagingSettings(...)`
+
+All staff functions check `is_staff(auth.uid())`. All writes call `logAudit(...)`.
 
 ## 4. Staff UI
 
-### Client profile — new "Activity" tab
-Lists `notification_log` rows: timestamp, type (label), channel icon, recipient, status badge (Sent / Delivered / Failed). Failed rows red; "Resend" button on each row.
+- **Sidebar**: new "Inbox" icon with unread badge (Realtime subscription on `conversations` count where status='unread').
+- **`/inbox`** — split layout:
+  - Left: conversation list with filters (All/Unread/Replied/Resolved, SMS/Email, date, search).
+  - Right: thread view — message bubbles (inbound left, outbound right, internal notes amber bg with "Internal note" tag), Hebrew date below each.
+  - Reply composer: textarea, channel toggle (SMS/Email default = match last inbound), SMS char counter (160 segments warning), Send, "Add internal note" toggle, "Mark resolved", "Assign to" dropdown.
+- **Client profile** — new "Message" button → modal compose (channel toggle, body) → calls `sendQuickMessage`.
+- **Client profile "Messages" tab** — shows that client's conversation thread inline.
+- **`/settings/messaging`** — business hours editor (per-day), auto-reply text, default channel, default assignee, displayed Twilio number.
+- **`/settings/broadcasts`** — compose form: recipient filter (radio: all active / search-multi-select / has-upcoming-appt / outstanding-balance / wigs-in-repair), channel, body with variable chips, preview pane, "Send to N clients — confirm?" dialog, post-send delivery report.
 
-### Client list — failure indicator
-Red dot on a client row when they have a `failed` notification in the last 7 days.
+## 5. Portal UI
 
-### `Settings > Notifications` (admin only)
-- Table of all 11 templates with toggle (enabled), edit drawer for SMS body / Email subject / Email body / per-channel toggles.
-- Variable reference chip-row inside the editor.
-- Live preview with a sample client.
+- **`/portal/messages`** — chat-style thread (messages where `channel != 'internal_note'`), composer at bottom, "Delivered/Read" indicators, Realtime subscription for new staff replies.
+- New "Messages" link in portal nav with unread badge.
 
-## 5. Email receipt template
+## 6. Notifications to staff
 
-React Email template `payment-receipt.tsx` rendered for `payment_receipt`:
-- Faigy's Wig Salon header
-- Client name + CLT-XXXXXX
-- Date + Hebrew date
-- Amount, method, description
-- Running balance OR "Paid in full"
-- Thank-you footer
+- On new inbound message:
+  - Realtime push updates badge instantly.
+  - Email all admins (and assigned staff, if any) via existing `sendNotification` engine using a new system template `inbox_new_message` (admin-only — bypasses client opt-in checks since recipients are staff). Subject: `New message from [Client Name]`. Body includes preview + link to `/inbox/<id>`.
 
-(All other emails reuse a simple branded shell — no full receipt formatting.)
+## 7. Audit
 
-## 6. Secrets needed
+Every send (staff reply, internal note, broadcast, assignment, status change, settings update) calls `logAudit({ module: 'inbox', action, summary, before, after })`. `audit_logs` is already append-only (no DELETE/UPDATE policies) — logs are immutable for everyone including admins.
 
-- `TWILIO_API_KEY` (Twilio connector) + `TWILIO_FROM_NUMBER`
-- `RESEND_API_KEY` (Resend connector) + verified `notify.faigyswigsalon.com` sender
-- `TWILIO_WEBHOOK_AUTH_TOKEN` for inbound STOP signature verification
+## 8. Secrets / config needed
 
-I'll request these via the secrets tool right after you approve.
+All already in place:
+- ✅ `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- ✅ `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 
----
+User-side configuration after build (one-time, in Twilio + Resend dashboards):
+- Twilio phone number → set inbound SMS webhook to `https://faigyswigsalon.lovable.app/api/public/hooks/twilio-inbound` and status callback to `/api/public/hooks/twilio-status`.
+- Resend → enable Inbound Emails on `notify.faigyswigsalon.com` MX, route to `/api/public/hooks/resend-inbound`. Add webhook for delivery events to `/api/public/hooks/resend-events`.
 
-## Out of scope
+I'll print the exact URLs + setup steps after deployment.
 
-- Replying to other inbound SMS (only STOP handled)
-- Per-client custom templates
-- Localization beyond English
+## 9. Build order (to keep diffs reviewable)
 
-Ready to build on approval.
+1. Migration (tables + RLS + indexes + seed default `messaging_settings` row).
+2. Server functions (`inbox.functions.ts`, `broadcast.functions.ts`, `messaging-settings.functions.ts`).
+3. Inbound webhooks (Twilio + Resend) with signature verification.
+4. Outbound delivery status webhooks.
+5. Staff inbox UI + sidebar badge + Realtime.
+6. Client profile Message button + Messages tab.
+7. Settings → Messaging + Broadcasts pages.
+8. Portal Messages tab + Realtime.
+9. Wire `Reply-To: inbox+<id>@...` into existing outbound email sender.
+10. Hook auto-reply + admin email-on-inbound into webhook handlers.
+
+Approve and I'll ship it in order — starting with the migration.

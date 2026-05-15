@@ -257,6 +257,113 @@ export type Database = {
           },
         ]
       }
+      broadcast_recipients: {
+        Row: {
+          broadcast_id: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          recipient: string | null
+          status: Database["public"]["Enums"]["message_delivery_status"]
+        }
+        Insert: {
+          broadcast_id: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          status?: Database["public"]["Enums"]["message_delivery_status"]
+        }
+        Update: {
+          broadcast_id?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          status?: Database["public"]["Enums"]["message_delivery_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_recipients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcasts: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["broadcast_channel"]
+          created_at: string
+          delivered_count: number
+          email_subject: string | null
+          failed_count: number
+          id: string
+          recipient_count: number
+          recipient_filter: Json
+          sent_by: string | null
+          sent_by_name: string | null
+          sent_count: number
+        }
+        Insert: {
+          body: string
+          channel: Database["public"]["Enums"]["broadcast_channel"]
+          created_at?: string
+          delivered_count?: number
+          email_subject?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          recipient_filter?: Json
+          sent_by?: string | null
+          sent_by_name?: string | null
+          sent_count?: number
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["broadcast_channel"]
+          created_at?: string
+          delivered_count?: number
+          email_subject?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          recipient_filter?: Json
+          sent_by?: string | null
+          sent_by_name?: string | null
+          sent_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcasts_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           auth_user_id: string | null
@@ -319,6 +426,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      conversations: {
+        Row: {
+          assigned_to: string | null
+          auto_reply_sent_at: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          last_inbound_channel:
+            | Database["public"]["Enums"]["message_channel"]
+            | null
+          last_message_at: string
+          last_message_preview: string | null
+          status: Database["public"]["Enums"]["conversation_status"]
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          auto_reply_sent_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_inbound_channel?:
+            | Database["public"]["Enums"]["message_channel"]
+            | null
+          last_message_at?: string
+          last_message_preview?: string | null
+          status?: Database["public"]["Enums"]["conversation_status"]
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          auto_reply_sent_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_inbound_channel?:
+            | Database["public"]["Enums"]["message_channel"]
+            | null
+          last_message_at?: string
+          last_message_preview?: string | null
+          status?: Database["public"]["Enums"]["conversation_status"]
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_orders: {
         Row: {
@@ -470,6 +640,129 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          client_id: string | null
+          conversation_id: string
+          created_at: string
+          delivery_error: string | null
+          delivery_status: Database["public"]["Enums"]["message_delivery_status"]
+          direction: Database["public"]["Enums"]["message_direction"]
+          id: string
+          in_reply_to: string | null
+          metadata: Json
+          provider_message_id: string | null
+          read_by_client_at: string | null
+          read_by_staff_at: string | null
+          sender_name: string | null
+          sender_user_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          body: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          client_id?: string | null
+          conversation_id: string
+          created_at?: string
+          delivery_error?: string | null
+          delivery_status?: Database["public"]["Enums"]["message_delivery_status"]
+          direction: Database["public"]["Enums"]["message_direction"]
+          id?: string
+          in_reply_to?: string | null
+          metadata?: Json
+          provider_message_id?: string | null
+          read_by_client_at?: string | null
+          read_by_staff_at?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          client_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          delivery_error?: string | null
+          delivery_status?: Database["public"]["Enums"]["message_delivery_status"]
+          direction?: Database["public"]["Enums"]["message_direction"]
+          id?: string
+          in_reply_to?: string | null
+          metadata?: Json
+          provider_message_id?: string | null
+          read_by_client_at?: string | null
+          read_by_staff_at?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_settings: {
+        Row: {
+          auto_reply_body: string
+          auto_reply_enabled: boolean
+          business_hours: Json
+          default_assignee: string | null
+          default_reply_channel: Database["public"]["Enums"]["message_channel"]
+          id: number
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          auto_reply_body?: string
+          auto_reply_enabled?: boolean
+          business_hours?: Json
+          default_assignee?: string | null
+          default_reply_channel?: Database["public"]["Enums"]["message_channel"]
+          id?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_reply_body?: string
+          auto_reply_enabled?: boolean
+          business_hours?: Json
+          default_assignee?: string | null
+          default_reply_channel?: Database["public"]["Enums"]["message_channel"]
+          id?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_settings_default_assignee_fkey"
+            columns: ["default_assignee"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_log: {
         Row: {
@@ -1076,8 +1369,18 @@ export type Database = {
       appointment_type: "consultation" | "cut" | "wash_set" | "pickup"
       audit_action: "create" | "update" | "delete" | "view" | "void"
       bank_account_type: "bank" | "cc_processor"
+      broadcast_channel: "sms" | "email" | "both"
       client_status: "new_consultation" | "active" | "inactive"
+      conversation_status: "unread" | "read" | "replied" | "resolved"
       hair_type: "human" | "synthetic"
+      message_channel: "sms" | "email" | "portal" | "internal_note"
+      message_delivery_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "read"
+        | "failed"
+      message_direction: "inbound" | "outbound"
       payment_category: "wig_sale" | "cut" | "wash_set" | "repair" | "other"
       payment_method: "cash" | "check" | "credit_card" | "zelle" | "other"
       repair_status: "sent_to_vendor" | "in_progress" | "returned" | "issue"
@@ -1226,8 +1529,19 @@ export const Constants = {
       appointment_type: ["consultation", "cut", "wash_set", "pickup"],
       audit_action: ["create", "update", "delete", "view", "void"],
       bank_account_type: ["bank", "cc_processor"],
+      broadcast_channel: ["sms", "email", "both"],
       client_status: ["new_consultation", "active", "inactive"],
+      conversation_status: ["unread", "read", "replied", "resolved"],
       hair_type: ["human", "synthetic"],
+      message_channel: ["sms", "email", "portal", "internal_note"],
+      message_delivery_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+      ],
+      message_direction: ["inbound", "outbound"],
       payment_category: ["wig_sale", "cut", "wash_set", "repair", "other"],
       payment_method: ["cash", "check", "credit_card", "zelle", "other"],
       repair_status: ["sent_to_vendor", "in_progress", "returned", "issue"],
