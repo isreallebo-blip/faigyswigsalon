@@ -53,6 +53,7 @@ const wigSchema = z.object({
   quantity: z.coerce.number().int().min(0),
   status: z.enum(["available", "reserved", "sent_for_repair", "sold"]),
   reserved_for_client_id: z.string().uuid().nullable().optional(),
+  vendor_id: z.string().uuid().nullable().optional(),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 type WigFormValues = z.infer<typeof wigSchema>;
