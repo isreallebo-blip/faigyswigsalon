@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
+import { triggerNotificationFn, formatDateClient } from "@/lib/notifications/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -185,6 +186,7 @@ function RepairDialog({ repair, onClose, onSaved }: { repair: Repair | null; onC
         status: v.status,
       };
       if (repair) {
+        const prevStatus = repair.status;
         const { data, error } = await supabase.from("repairs").update(payload).eq("id", repair.id).select().single();
         if (error) throw error;
         await logAudit({
@@ -193,6 +195,19 @@ function RepairDialog({ repair, onClose, onSaved }: { repair: Repair | null; onC
           before: repair as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
         });
+        if (v.client_id && prevStatus !== "returned" && payload.status === "returned") {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id, templateKey: "wig_ready_for_pickup",
+            idempotencyKey: `repair-ready-${repair.id}`,
+          }}).catch(() => {});
+        }
+        if (v.client_id && prevStatus !== "sent_to_vendor" && payload.status === "sent_to_vendor") {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id, templateKey: "wig_sent_to_repair",
+            vars: { date: formatDateClient(payload.expected_return) },
+            idempotencyKey: `repair-sent-${repair.id}`,
+          }}).catch(() => {});
+        }
       } else {
         const { data, error } = await supabase.from("repairs").insert(payload).select().single();
         if (error) throw error;
@@ -201,6 +216,13 @@ function RepairDialog({ repair, onClose, onSaved }: { repair: Repair | null; onC
           summary: `Repair sent to ${payload.vendor}`,
           after: data as unknown as Record<string, unknown>,
         });
+        if (v.client_id && payload.status === "sent_to_vendor") {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id, templateKey: "wig_sent_to_repair",
+            vars: { date: formatDateClient(payload.expected_return) },
+            idempotencyKey: `repair-sent-${data.id}`,
+          }}).catch(() => {});
+        }
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
