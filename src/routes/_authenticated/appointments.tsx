@@ -247,6 +247,7 @@ function ApptDialog({
         notes: v.notes || null,
       };
       if (appt) {
+        const oldStartIso = appt.starts_at;
         const { data, error } = await supabase.from("appointments").update(payload).eq("id", appt.id).select().single();
         if (error) throw error;
         await logAudit({
@@ -256,6 +257,14 @@ function ApptDialog({
           before: appt as unknown as Record<string, unknown>,
           after: data as unknown as Record<string, unknown>,
         });
+        if (new Date(oldStartIso).getTime() !== start.getTime()) {
+          await triggerNotificationFn({ data: {
+            clientId: v.client_id,
+            templateKey: "appointment_rescheduled",
+            vars: appointmentVarsClient(start, v.type),
+            idempotencyKey: `appt-reschedule-${appt.id}-${start.toISOString()}`,
+          }}).catch(() => {});
+        }
       } else {
         const { data, error } = await supabase.from("appointments").insert(payload).select().single();
         if (error) throw error;
@@ -265,6 +274,12 @@ function ApptDialog({
           summary: `${v.type} appointment scheduled`,
           after: data as unknown as Record<string, unknown>,
         });
+        await triggerNotificationFn({ data: {
+          clientId: v.client_id,
+          templateKey: "appointment_confirmation",
+          vars: appointmentVarsClient(start, v.type),
+          idempotencyKey: `appt-confirm-${data.id}`,
+        }}).catch(() => {});
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
