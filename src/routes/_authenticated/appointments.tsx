@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
+import { triggerNotificationFn, appointmentVarsClient } from "@/lib/notifications/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -298,6 +299,14 @@ function ApptDialog({
         before: appt as unknown as Record<string, unknown>,
         after: data as unknown as Record<string, unknown>,
       });
+      if (status === "cancelled" && appt.client_id) {
+        await triggerNotificationFn({ data: {
+          clientId: appt.client_id,
+          templateKey: "appointment_cancelled",
+          vars: appointmentVarsClient(new Date(appt.starts_at), appt.type),
+          idempotencyKey: `appt-cancel-${appt.id}`,
+        }}).catch(() => {});
+      }
     },
     onSuccess: () => { toast.success("Status updated"); onSaved(); },
   });
