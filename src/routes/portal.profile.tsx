@@ -16,7 +16,14 @@ function ProfilePage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["portal-me"], queryFn: () => meFn() });
 
-  const [form, setForm] = useState({ full_name: "", phone: "", email: "", photo_url: "" });
+  const [form, setForm] = useState({
+    full_name: "",
+    phone: "",
+    email: "",
+    photo_url: "",
+    sms_opt_in: true,
+    email_opt_in: true,
+  });
 
   useEffect(() => {
     if (q.data?.client) {
@@ -25,6 +32,8 @@ function ProfilePage() {
         phone: q.data.client.phone ?? "",
         email: q.data.client.email ?? "",
         photo_url: q.data.client.photo_url ?? "",
+        sms_opt_in: q.data.client.sms_opt_in ?? true,
+        email_opt_in: q.data.client.email_opt_in ?? true,
       });
     }
   }, [q.data]);
