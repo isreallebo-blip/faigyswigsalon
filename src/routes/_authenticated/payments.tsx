@@ -312,17 +312,29 @@ function PaymentDialog({
           <Label>Description</Label>
           <Textarea rows={2} {...form.register("description")} />
         </div>
+        {payment && !payment.voided_at && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <Label className="text-destructive">Void this payment</Label>
+            <p className="text-xs text-muted-foreground">Payments are never deleted. Voiding excludes them from totals but keeps the record for audit.</p>
+            <Input placeholder="Reason (required)" value={voidReason} onChange={(e) => setVoidReason(e.target.value)} />
+          </div>
+        )}
+        {payment?.voided_at && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+            Voided on {format(new Date(payment.voided_at), "MMM d, yyyy HH:mm")} — {payment.void_reason}
+          </div>
+        )}
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <div>
-            {payment && (
-              <Button type="button" variant="ghost" onClick={() => remove.mutate()} className="text-destructive gap-2">
-                <Trash2 className="h-4 w-4" /> Delete
+            {payment && !payment.voided_at && (
+              <Button type="button" variant="ghost" onClick={() => voidPayment.mutate()} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
+                <Ban className="h-4 w-4" /> Void
               </Button>
             )}
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={save.isPending}>Save</Button>
+            <Button type="submit" disabled={save.isPending || !!payment?.voided_at}>Save</Button>
           </div>
         </DialogFooter>
       </form>
