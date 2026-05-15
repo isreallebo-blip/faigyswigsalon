@@ -60,13 +60,13 @@ function RepairsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("repairs")
-        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code), vendor_ref:vendor_id(name)")
+        .select("*, client:client_id(full_name, display_id), wig:wig_id(brand, style, wig_code, display_id), vendor_ref:vendor_id(name, display_id)")
         .order("date_sent", { ascending: false });
       if (error) throw error;
       return data as (Repair & {
-        client: { full_name: string } | null;
-        wig: { brand: string | null; style: string | null; wig_code: string | null } | null;
-        vendor_ref: { name: string } | null;
+        client: { full_name: string; display_id: string } | null;
+        wig: { brand: string | null; style: string | null; wig_code: string | null; display_id: string } | null;
+        vendor_ref: { name: string; display_id: string } | null;
       })[];
     },
   });
@@ -128,8 +128,11 @@ function RepairsPage() {
                           {r.status.replace(/_/g, " ")}
                         </Badge>
                         <span className="font-medium">{r.client?.full_name ?? "—"}</span>
+                        {r.client?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{r.client.display_id}</span>}
                         <span className="text-muted-foreground">·</span>
                         <span className="text-sm text-muted-foreground">{r.vendor_ref?.name ?? r.vendor}</span>
+                        {r.vendor_ref?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{r.vendor_ref.display_id}</span>}
+                        {r.wig?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{r.wig.display_id}</span>}
                         {overdue && <Badge variant="destructive">Overdue</Badge>}
                       </div>
                       {r.work_requested && <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{r.work_requested}</p>}
