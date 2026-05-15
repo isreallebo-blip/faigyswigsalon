@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Wrench,
   Wallet,
+  Settings as SettingsIcon,
   LogOut,
   Menu,
   X,
@@ -15,8 +16,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAccess } from "@/lib/use-access";
 
-const nav = [
+const baseNav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/inventory", label: "Inventory", icon: Package },
@@ -25,11 +27,14 @@ const nav = [
   { to: "/repairs", label: "Repairs", icon: Wrench },
   { to: "/payments", label: "Payments", icon: Wallet },
 ] as const;
+const adminNav = [{ to: "/settings", label: "Settings", icon: SettingsIcon }] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useAccess();
+  const nav = isAdmin ? [...baseNav, ...adminNav] : baseNav;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
