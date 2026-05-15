@@ -108,10 +108,10 @@ function WigCatalog() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wigs")
-        .select("*, reserved_for:reserved_for_client_id(full_name)")
+        .select("*, reserved_for:reserved_for_client_id(full_name), vendor:vendor_id(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as (Wig & { reserved_for: { full_name: string } | null })[];
+      return data as (Wig & { reserved_for: { full_name: string } | null; vendor: { name: string } | null })[];
     },
   });
 
