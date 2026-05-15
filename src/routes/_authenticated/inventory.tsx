@@ -617,12 +617,13 @@ function CustomOrders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_orders")
-        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code)")
+        .select("*, client:client_id(full_name), wig:wig_id(brand, style, wig_code), vendor_ref:vendor_id(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as (CustomOrder & {
         client: { full_name: string } | null;
         wig: { brand: string | null; style: string | null; wig_code: string | null } | null;
+        vendor_ref: { name: string } | null;
       })[];
     },
   });
@@ -687,7 +688,7 @@ function CustomOrders() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{o.client?.full_name ?? "—"}</span>
                       <span className="text-muted-foreground">·</span>
-                      <span className="text-sm text-muted-foreground">{o.vendor || "Unknown vendor"}</span>
+                      <span className="text-sm text-muted-foreground">{o.vendor_ref?.name || o.vendor || "Unknown vendor"}</span>
                     </div>
                     {o.specs && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{o.specs}</p>}
                   </div>
