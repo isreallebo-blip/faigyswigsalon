@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { useAccess } from "@/lib/use-access";
 import { ClientImportDialog } from "@/components/client-import-dialog";
 import { capitalizeName, formatPhone, formatPhoneTyping, normalizeEmail } from "@/lib/client-import";
