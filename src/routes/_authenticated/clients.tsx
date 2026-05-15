@@ -291,17 +291,28 @@ function ClientDialog({
           .from("clients")
           .update(payload)
           .eq("id", client.id)
-          .select("id")
+          .select("*")
           .single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "client", recordId: data.id, recordLabel: data.full_name,
+          summary: `Client ${data.full_name} updated`,
+          before: client as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
       const { data, error } = await supabase
         .from("clients")
         .insert(payload)
-        .select("id")
+        .select("*")
         .single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "client", recordId: data.id, recordLabel: data.full_name,
+        summary: `Client ${data.full_name} created`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
