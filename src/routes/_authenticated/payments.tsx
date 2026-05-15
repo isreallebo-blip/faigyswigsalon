@@ -379,6 +379,7 @@ function RegisterTab() {
         .from("payments")
         .select("id, date, amount, description, client:client_id(full_name)")
         .eq("bank_account_id", activeAcct!)
+        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return data as (Payment & { client: { full_name: string } | null })[];
