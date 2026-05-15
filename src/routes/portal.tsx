@@ -68,7 +68,7 @@ function PortalLayout() {
             <PortalTab to="/portal" icon={<Home className="size-5" />} label="Home" exact />
             <PortalTab to="/portal/appointments" icon={<Calendar className="size-5" />} label="Appts" />
             <PortalTab to="/portal/wigs" icon={<Sparkles className="size-5" />} label="Wigs" />
-            <PortalTab to="/portal/messages" icon={<MessageSquare className="size-5" />} label="Messages" />
+            <PortalTab to="/portal/messages" icon={<MessageSquare className="size-5" />} label="Messages" badge={<MessagesUnread />} />
             <PortalTab to="/portal/payments" icon={<CreditCard className="size-5" />} label="Pay" />
             <PortalTab to="/portal/profile" icon={<User className="size-5" />} label="Profile" />
           </div>
