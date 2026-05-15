@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useLocation, redirect, useNavigate } from "@tanstack/react-router";
-import { Home, Calendar, Sparkles, CreditCard, User, LogOut } from "lucide-react";
+import { Home, Calendar, Sparkles, CreditCard, User, LogOut, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/portal")({
@@ -60,11 +60,12 @@ function PortalLayout() {
 
       {!isAuthRoute && (
         <nav className="fixed bottom-0 inset-x-0 z-40 bg-[oklch(0.99_0.01_80)] border-t border-[oklch(0.88_0.04_80)]">
-          <div className="mx-auto max-w-2xl grid grid-cols-5">
+          <div className="mx-auto max-w-2xl grid grid-cols-6">
             <PortalTab to="/portal" icon={<Home className="size-5" />} label="Home" exact />
             <PortalTab to="/portal/appointments" icon={<Calendar className="size-5" />} label="Appts" />
-            <PortalTab to="/portal/wigs" icon={<Sparkles className="size-5" />} label="My Wigs" />
-            <PortalTab to="/portal/payments" icon={<CreditCard className="size-5" />} label="Payments" />
+            <PortalTab to="/portal/wigs" icon={<Sparkles className="size-5" />} label="Wigs" />
+            <PortalTab to="/portal/messages" icon={<MessageSquare className="size-5" />} label="Messages" />
+            <PortalTab to="/portal/payments" icon={<CreditCard className="size-5" />} label="Pay" />
             <PortalTab to="/portal/profile" icon={<User className="size-5" />} label="Profile" />
           </div>
         </nav>

@@ -21,6 +21,7 @@ import { Route as PortalVerifyRouteImport } from './routes/portal.verify'
 import { Route as PortalRepairsRouteImport } from './routes/portal.repairs'
 import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalPaymentsRouteImport } from './routes/portal.payments'
+import { Route as PortalMessagesRouteImport } from './routes/portal.messages'
 import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as PortalAppointmentsRouteImport } from './routes/portal.appointments'
 import { Route as AuthenticatedWorkflowsRouteImport } from './routes/_authenticated/workflows'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedRepairsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
+import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
@@ -104,6 +106,11 @@ const PortalPaymentsRoute = PortalPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalMessagesRoute = PortalMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalLoginRoute = PortalLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -147,6 +154,11 @@ const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
 const AuthenticatedInventoryRoute = AuthenticatedInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
@@ -234,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
+  '/inbox': typeof AuthenticatedInboxRoute
   '/inventory': typeof AuthenticatedInventoryRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -243,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/messages': typeof PortalMessagesRoute
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
@@ -268,6 +282,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
+  '/inbox': typeof AuthenticatedInboxRoute
   '/inventory': typeof AuthenticatedInventoryRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -276,6 +291,7 @@ export interface FileRoutesByTo {
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/messages': typeof PortalMessagesRoute
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
@@ -305,6 +321,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
+  '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -314,6 +331,7 @@ export interface FileRoutesById {
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
   '/portal/appointments': typeof PortalAppointmentsRoute
   '/portal/login': typeof PortalLoginRoute
+  '/portal/messages': typeof PortalMessagesRoute
   '/portal/payments': typeof PortalPaymentsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/portal/repairs': typeof PortalRepairsRoute
@@ -344,6 +362,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/appointments'
     | '/clients'
+    | '/inbox'
     | '/inventory'
     | '/payments'
     | '/profile'
@@ -353,6 +372,7 @@ export interface FileRouteTypes {
     | '/workflows'
     | '/portal/appointments'
     | '/portal/login'
+    | '/portal/messages'
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
@@ -378,6 +398,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/appointments'
     | '/clients'
+    | '/inbox'
     | '/inventory'
     | '/payments'
     | '/profile'
@@ -386,6 +407,7 @@ export interface FileRouteTypes {
     | '/workflows'
     | '/portal/appointments'
     | '/portal/login'
+    | '/portal/messages'
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
@@ -414,6 +436,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/appointments'
     | '/_authenticated/clients'
+    | '/_authenticated/inbox'
     | '/_authenticated/inventory'
     | '/_authenticated/payments'
     | '/_authenticated/profile'
@@ -423,6 +446,7 @@ export interface FileRouteTypes {
     | '/_authenticated/workflows'
     | '/portal/appointments'
     | '/portal/login'
+    | '/portal/messages'
     | '/portal/payments'
     | '/portal/profile'
     | '/portal/repairs'
@@ -546,6 +570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalPaymentsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/messages': {
+      id: '/portal/messages'
+      path: '/messages'
+      fullPath: '/portal/messages'
+      preLoaderRoute: typeof PortalMessagesRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/login': {
       id: '/portal/login'
       path: '/login'
@@ -607,6 +638,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/inventory'
       preLoaderRoute: typeof AuthenticatedInventoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/inbox': {
+      id: '/_authenticated/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AuthenticatedInboxRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/clients': {
@@ -732,6 +770,7 @@ const AuthenticatedSettingsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAppointmentsRoute: typeof AuthenticatedAppointmentsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
+  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -745,6 +784,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppointmentsRoute: AuthenticatedAppointmentsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
+  AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
@@ -762,6 +802,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 interface PortalRouteChildren {
   PortalAppointmentsRoute: typeof PortalAppointmentsRoute
   PortalLoginRoute: typeof PortalLoginRoute
+  PortalMessagesRoute: typeof PortalMessagesRoute
   PortalPaymentsRoute: typeof PortalPaymentsRoute
   PortalProfileRoute: typeof PortalProfileRoute
   PortalRepairsRoute: typeof PortalRepairsRoute
@@ -773,6 +814,7 @@ interface PortalRouteChildren {
 const PortalRouteChildren: PortalRouteChildren = {
   PortalAppointmentsRoute: PortalAppointmentsRoute,
   PortalLoginRoute: PortalLoginRoute,
+  PortalMessagesRoute: PortalMessagesRoute,
   PortalPaymentsRoute: PortalPaymentsRoute,
   PortalProfileRoute: PortalProfileRoute,
   PortalRepairsRoute: PortalRepairsRoute,
