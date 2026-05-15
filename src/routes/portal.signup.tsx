@@ -264,7 +264,7 @@ function PortalSignupPage() {
               </button>
             </>
           )}
-        </mot​ion.div>
+        </motion.div>
 
         <p className="mt-6 text-center text-xs text-[oklch(0.45_0.02_60)]">
           Already have an account?{" "}
