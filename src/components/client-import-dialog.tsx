@@ -78,6 +78,7 @@ export function ClientImportDialog({ open, onOpenChange }: Props) {
           });
           if (hasValue) parsed.push(obj);
         }
+      }
     } catch (e) {
       toast.error(`Could not read file: ${(e as Error).message}`);
       return;
