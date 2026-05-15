@@ -688,7 +688,7 @@ function CustomOrders() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{o.client?.full_name ?? "—"}</span>
                       <span className="text-muted-foreground">·</span>
-                      <span className="text-sm text-muted-foreground">{o.vendor || "Unknown vendor"}</span>
+                      <span className="text-sm text-muted-foreground">{o.vendor_ref?.name || o.vendor || "Unknown vendor"}</span>
                     </div>
                     {o.specs && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{o.specs}</p>}
                   </div>
