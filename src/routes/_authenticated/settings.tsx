@@ -28,6 +28,7 @@ function SettingsLayout() {
   const tabs = [
     { to: "/settings/users", label: "Users", icon: UsersIcon },
     { to: "/settings/calendar", label: "Calendar", icon: CalendarDays },
+    { to: "/settings/audit-log", label: "Audit log", icon: ScrollText },
   ] as const;
 
   return (
