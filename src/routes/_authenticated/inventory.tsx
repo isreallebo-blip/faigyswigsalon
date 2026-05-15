@@ -287,6 +287,7 @@ function WigDialog({
         quantity: values.quantity,
         status: values.status,
         reserved_for_client_id: values.status === "reserved" ? values.reserved_for_client_id ?? null : null,
+        vendor_id: values.vendor_id ?? null,
         notes: values.notes || null,
       };
       if (mode === "edit" && wig) {
