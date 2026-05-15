@@ -291,13 +291,25 @@ function WigDialog({
         vendor_id: values.vendor_id ?? null,
         notes: values.notes || null,
       };
+      const label = [payload.brand, payload.style, payload.wig_code].filter(Boolean).join(" · ") || "Wig";
       if (mode === "edit" && wig) {
-        const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("id").single();
+        const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("*").single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "inventory", recordId: data.id, recordLabel: label,
+          summary: `Wig ${label} updated`,
+          before: wig as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
-      const { data, error } = await supabase.from("wigs").insert(payload).select("id").single();
+      const { data, error } = await supabase.from("wigs").insert(payload).select("*").single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "inventory", recordId: data.id, recordLabel: label,
+        summary: `Wig ${label} added to inventory`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
