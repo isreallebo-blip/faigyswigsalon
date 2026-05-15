@@ -205,7 +205,7 @@ function WigCatalog() {
                     </Badge>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Qty {w.quantity}</span>
+                    <span className="truncate">{w.vendor?.name ? `From ${w.vendor.name}` : `Qty ${w.quantity}`}</span>
                     <span className="tabular-nums">${Number(w.price).toLocaleString()}</span>
                   </div>
                 </CardContent>
