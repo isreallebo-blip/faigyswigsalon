@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
