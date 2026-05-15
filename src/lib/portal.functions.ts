@@ -119,15 +119,11 @@ export const getPortalDashboard = createServerFn({ method: "GET" })
     ]);
 
     let outstanding = 0;
+    void outstanding;
+    let totalPaid = 0;
     for (const p of payments.data ?? []) {
       if (p.voided_at) continue;
-      const amt = Number(p.amount ?? 0);
-      // "charge" categories -> add; "payment" categories -> subtract
-      if (p.category === "charge" || p.category === "service" || p.category === "product") {
-        outstanding += amt;
-      } else {
-        outstanding -= amt;
-      }
+      totalPaid += Number(p.amount ?? 0);
     }
 
     void logPortalActivity({
