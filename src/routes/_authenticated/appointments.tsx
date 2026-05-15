@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -245,11 +246,24 @@ function ApptDialog({
         notes: v.notes || null,
       };
       if (appt) {
-        const { error } = await supabase.from("appointments").update(payload).eq("id", appt.id);
+        const { data, error } = await supabase.from("appointments").update(payload).eq("id", appt.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "appointment", recordId: appt.id,
+          recordLabel: format(start, "MMM d, HH:mm"),
+          summary: "Appointment updated",
+          before: appt as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("appointments").insert(payload);
+        const { data, error } = await supabase.from("appointments").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "appointment", recordId: data.id,
+          recordLabel: format(start, "MMM d, HH:mm"),
+          summary: `${v.type} appointment scheduled`,
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
@@ -259,8 +273,15 @@ function ApptDialog({
   const updateStatus = useMutation({
     mutationFn: async (status: ApptStatus) => {
       if (!appt) return;
-      const { error } = await supabase.from("appointments").update({ status }).eq("id", appt.id);
+      const { data, error } = await supabase.from("appointments").update({ status }).eq("id", appt.id).select().single();
       if (error) throw error;
+      await logAudit({
+        action: "update", module: "appointment", recordId: appt.id,
+        recordLabel: format(new Date(appt.starts_at), "MMM d, HH:mm"),
+        summary: `Status changed from "${appt.status}" → "${status}"`,
+        before: appt as unknown as Record<string, unknown>,
+        after: data as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => { toast.success("Status updated"); onSaved(); },
   });
@@ -270,6 +291,12 @@ function ApptDialog({
       if (!appt) return;
       const { error } = await supabase.from("appointments").delete().eq("id", appt.id);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "appointment", recordId: appt.id,
+        recordLabel: format(new Date(appt.starts_at), "MMM d, HH:mm"),
+        summary: "Appointment deleted",
+        before: appt as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => { toast.success("Appointment removed"); onSaved(); },
   });

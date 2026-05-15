@@ -5,8 +5,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Plus, Wallet, Trash2, Link2, Banknote, CreditCard } from "lucide-react";
+import { Plus, Wallet, Ban, Link2, Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { logAudit } from "@/lib/audit";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -114,7 +115,7 @@ function PaymentsTab() {
     },
   });
 
-  const total = useMemo(() => (list.data ?? []).reduce((s, p) => s + Number(p.amount), 0), [list.data]);
+  const total = useMemo(() => (list.data ?? []).filter((p) => !p.voided_at).reduce((s, p) => s + Number(p.amount), 0), [list.data]);
 
   return (
     <div className="space-y-4">
@@ -148,19 +149,21 @@ function PaymentsTab() {
         <div className="space-y-2">
           {list.data.map((p) => (
             <button key={p.id} onClick={() => setEditing(p)} className="w-full text-left">
-              <Card className="transition hover:border-gold">
+              <Card className={`transition hover:border-gold ${p.voided_at ? "opacity-60" : ""}`}>
                 <CardContent className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="capitalize">{p.category.replace("_", " ")}</Badge>
-                      <span className="font-medium">{p.client?.full_name ?? "—"}</span>
+                      {p.voided_at && <Badge variant="destructive">Voided</Badge>}
+                      <span className={`font-medium ${p.voided_at ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
                       <span className="text-xs text-muted-foreground capitalize">· {p.method.replace("_", " ")}</span>
                       {p.account && <span className="text-xs text-muted-foreground">→ {p.account.name}</span>}
                     </div>
                     {p.description && <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>}
+                    {p.void_reason && <p className="mt-1 text-xs text-destructive">Void reason: {p.void_reason}</p>}
                   </div>
                   <div className="text-right">
-                    <div className="font-display text-xl tabular-nums">${Number(p.amount).toLocaleString()}</div>
+                    <div className={`font-display text-xl tabular-nums ${p.voided_at ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
                   </div>
                 </CardContent>
@@ -194,6 +197,8 @@ function PaymentDialog({
     },
   });
 
+  const [voidReason, setVoidReason] = useState("");
+
   const save = useMutation({
     mutationFn: async (v: z.infer<typeof paymentSchema>) => {
       const payload = {
@@ -206,24 +211,50 @@ function PaymentDialog({
         description: v.description || null,
       };
       if (payment) {
-        const { error } = await supabase.from("payments").update(payload).eq("id", payment.id);
+        const { data, error } = await supabase.from("payments").update(payload).eq("id", payment.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "payment", recordId: payment.id,
+          recordLabel: `$${payment.amount} on ${payment.date}`,
+          summary: "Payment updated",
+          before: payment as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("payments").insert(payload);
+        const { data, error } = await supabase.from("payments").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "payment", recordId: data.id,
+          recordLabel: `$${data.amount} on ${data.date}`,
+          summary: `Payment of $${data.amount} recorded`,
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const remove = useMutation({
+  const voidPayment = useMutation({
     mutationFn: async () => {
       if (!payment) return;
-      const { error } = await supabase.from("payments").delete().eq("id", payment.id);
+      if (!voidReason.trim()) throw new Error("Void reason is required");
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("payments")
+        .update({ voided_at: new Date().toISOString(), voided_by: user?.id ?? null, void_reason: voidReason.trim() })
+        .eq("id", payment.id).select().single();
       if (error) throw error;
+      await logAudit({
+        action: "void", module: "payment", recordId: payment.id,
+        recordLabel: `$${payment.amount} on ${payment.date}`,
+        summary: `Payment voided: ${voidReason.trim()}`,
+        before: payment as unknown as Record<string, unknown>,
+        after: data as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Removed"); onSaved(); },
+    onSuccess: () => { toast.success("Payment voided"); onSaved(); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -281,17 +312,29 @@ function PaymentDialog({
           <Label>Description</Label>
           <Textarea rows={2} {...form.register("description")} />
         </div>
+        {payment && !payment.voided_at && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <Label className="text-destructive">Void this payment</Label>
+            <p className="text-xs text-muted-foreground">Payments are never deleted. Voiding excludes them from totals but keeps the record for audit.</p>
+            <Input placeholder="Reason (required)" value={voidReason} onChange={(e) => setVoidReason(e.target.value)} />
+          </div>
+        )}
+        {payment?.voided_at && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+            Voided on {format(new Date(payment.voided_at), "MMM d, yyyy HH:mm")} — {payment.void_reason}
+          </div>
+        )}
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <div>
-            {payment && (
-              <Button type="button" variant="ghost" onClick={() => remove.mutate()} className="text-destructive gap-2">
-                <Trash2 className="h-4 w-4" /> Delete
+            {payment && !payment.voided_at && (
+              <Button type="button" variant="ghost" onClick={() => voidPayment.mutate()} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
+                <Ban className="h-4 w-4" /> Void
               </Button>
             )}
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={save.isPending}>Save</Button>
+            <Button type="submit" disabled={save.isPending || !!payment?.voided_at}>Save</Button>
           </div>
         </DialogFooter>
       </form>
@@ -336,6 +379,7 @@ function RegisterTab() {
         .from("payments")
         .select("id, date, amount, description, client:client_id(full_name)")
         .eq("bank_account_id", activeAcct!)
+        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return data as (Payment & { client: { full_name: string } | null })[];
@@ -568,6 +612,7 @@ function ReconcileTab() {
         .from("payments")
         .select("*, client:client_id(full_name)")
         .eq("bank_account_id", acctId!)
+        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return (data as (Payment & { client: { full_name: string } | null })[]).filter((p) => !matchedIds.has(p.id));

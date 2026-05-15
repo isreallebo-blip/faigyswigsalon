@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,13 +291,25 @@ function WigDialog({
         vendor_id: values.vendor_id ?? null,
         notes: values.notes || null,
       };
+      const label = [payload.brand, payload.style, payload.wig_code].filter(Boolean).join(" · ") || "Wig";
       if (mode === "edit" && wig) {
-        const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("id").single();
+        const { data, error } = await supabase.from("wigs").update(payload).eq("id", wig.id).select("*").single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "inventory", recordId: data.id, recordLabel: label,
+          summary: `Wig ${label} updated`,
+          before: wig as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
-      const { data, error } = await supabase.from("wigs").insert(payload).select("id").single();
+      const { data, error } = await supabase.from("wigs").insert(payload).select("*").single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "inventory", recordId: data.id, recordLabel: label,
+        summary: `Wig ${label} added to inventory`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
@@ -482,8 +495,15 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
 
   const del = useMutation({
     mutationFn: async () => {
+      const w = wig.data;
+      const label = w ? [w.brand, w.style, w.wig_code].filter(Boolean).join(" · ") || "Wig" : "Wig";
       const { error } = await supabase.from("wigs").delete().eq("id", wigId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "inventory", recordId: wigId, recordLabel: label,
+        summary: `Wig ${label} deleted`,
+        before: w as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Wig deleted");
@@ -632,6 +652,7 @@ function CustomOrders() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("custom_orders").delete().eq("id", id);
       if (error) throw error;
+      await logAudit({ action: "delete", module: "custom_order", recordId: id, summary: "Custom order deleted" });
     },
     onSuccess: () => {
       toast.success("Custom order removed");
@@ -762,11 +783,22 @@ function CustomOrderDialog({
         notes: v.notes || null,
       };
       if (order) {
-        const { error } = await supabase.from("custom_orders").update(payload).eq("id", order.id);
+        const { data, error } = await supabase.from("custom_orders").update(payload).eq("id", order.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "custom_order", recordId: order.id, recordLabel: payload.specs ?? "Custom order",
+          summary: "Custom order updated",
+          before: order as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("custom_orders").insert(payload);
+        const { data, error } = await supabase.from("custom_orders").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "custom_order", recordId: data.id, recordLabel: payload.specs ?? "Custom order",
+          summary: "Custom order created",
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => {

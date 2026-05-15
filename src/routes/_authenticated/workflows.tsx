@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -151,6 +152,11 @@ function NewWorkflowDialog({ onClose, onCreated }: { onClose: () => void; onCrea
       }));
       const { error: e2 } = await supabase.from("workflow_steps").insert(steps);
       if (e2) throw e2;
+      await logAudit({
+        action: "create", module: "workflow", recordId: wf.id, recordLabel: type,
+        summary: `${type} workflow created`,
+        after: wf as unknown as Record<string, unknown>,
+      });
       return wf.id;
     },
     onSuccess: (id) => {
@@ -258,6 +264,7 @@ function WorkflowDetail({ id, onClose }: { id: string; onClose: () => void }) {
       await supabase.from("workflow_steps").delete().eq("workflow_id", id);
       const { error } = await supabase.from("service_workflows").delete().eq("id", id);
       if (error) throw error;
+      await logAudit({ action: "delete", module: "workflow", recordId: id, summary: "Workflow deleted" });
     },
     onSuccess: () => {
       toast.success("Workflow removed");

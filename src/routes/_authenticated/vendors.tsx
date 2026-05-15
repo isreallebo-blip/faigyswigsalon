@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -306,17 +307,28 @@ function VendorDialog({
           .from("vendors")
           .update(payload)
           .eq("id", vendor.id)
-          .select("id")
+          .select("*")
           .single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "vendor", recordId: data.id, recordLabel: data.name,
+          summary: `Vendor ${data.name} updated`,
+          before: vendor as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
       const { data, error } = await supabase
         .from("vendors")
         .insert(payload)
-        .select("id")
+        .select("*")
         .single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "vendor", recordId: data.id, recordLabel: data.name,
+        summary: `Vendor ${data.name} created`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
@@ -504,8 +516,14 @@ function VendorDetail({ vendorId, onClose }: { vendorId: string; onClose: () => 
 
   const del = useMutation({
     mutationFn: async () => {
+      const label = vendor.data?.name ?? "Vendor";
       const { error } = await supabase.from("vendors").delete().eq("id", vendorId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "vendor", recordId: vendorId, recordLabel: label,
+        summary: `Vendor ${label} deleted`,
+        before: vendor.data as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Vendor deleted");

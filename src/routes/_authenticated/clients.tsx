@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/audit";
 import { useAccess } from "@/lib/use-access";
 import { ClientImportDialog } from "@/components/client-import-dialog";
 import { capitalizeName, formatPhone, formatPhoneTyping, normalizeEmail } from "@/lib/client-import";
@@ -290,17 +291,28 @@ function ClientDialog({
           .from("clients")
           .update(payload)
           .eq("id", client.id)
-          .select("id")
+          .select("*")
           .single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "client", recordId: data.id, recordLabel: data.full_name,
+          summary: `Client ${data.full_name} updated`,
+          before: client as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
         return data.id;
       }
       const { data, error } = await supabase
         .from("clients")
         .insert(payload)
-        .select("id")
+        .select("*")
         .single();
       if (error) throw error;
+      await logAudit({
+        action: "create", module: "client", recordId: data.id, recordLabel: data.full_name,
+        summary: `Client ${data.full_name} created`,
+        after: data as unknown as Record<string, unknown>,
+      });
       return data.id;
     },
     onSuccess: (id) => {
@@ -455,8 +467,14 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
 
   const del = useMutation({
     mutationFn: async () => {
+      const label = client.data?.full_name ?? "Client";
       const { error } = await supabase.from("clients").delete().eq("id", clientId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "client", recordId: clientId, recordLabel: label,
+        summary: `Client ${label} deleted`,
+        before: client.data as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Client deleted");

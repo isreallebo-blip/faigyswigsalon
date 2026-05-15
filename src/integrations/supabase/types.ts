@@ -125,6 +125,57 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action"]
+          after: Json | null
+          before: Json | null
+          changes: Json | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          module: string
+          record_id: string | null
+          record_label: string | null
+          summary: string
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action"]
+          after?: Json | null
+          before?: Json | null
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          module: string
+          record_id?: string | null
+          record_label?: string | null
+          summary: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action"]
+          after?: Json | null
+          before?: Json | null
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          module?: string
+          record_id?: string | null
+          record_label?: string | null
+          summary?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           created_at: string
@@ -321,6 +372,9 @@ export type Database = {
           id: string
           method: Database["public"]["Enums"]["payment_method"]
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -333,6 +387,9 @@ export type Database = {
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -345,6 +402,9 @@ export type Database = {
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -753,6 +813,7 @@ export type Database = {
         | "no_show"
         | "cancelled"
       appointment_type: "consultation" | "cut" | "wash_set" | "pickup"
+      audit_action: "create" | "update" | "delete" | "view" | "void"
       bank_account_type: "bank" | "cc_processor"
       client_status: "new_consultation" | "active" | "inactive"
       hair_type: "human" | "synthetic"
@@ -902,6 +963,7 @@ export const Constants = {
         "cancelled",
       ],
       appointment_type: ["consultation", "cut", "wash_set", "pickup"],
+      audit_action: ["create", "update", "delete", "view", "void"],
       bank_account_type: ["bank", "cc_processor"],
       client_status: ["new_consultation", "active", "inactive"],
       hair_type: ["human", "synthetic"],
