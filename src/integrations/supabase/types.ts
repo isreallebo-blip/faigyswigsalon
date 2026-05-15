@@ -61,6 +61,7 @@ export type Database = {
           created_at: string
           ends_at: string | null
           id: string
+          last_notified_starts_at: string | null
           notes: string | null
           reminder_24h_sent_at: string | null
           reminder_2h_sent_at: string | null
@@ -76,6 +77,7 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          last_notified_starts_at?: string | null
           notes?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          last_notified_starts_at?: string | null
           notes?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
@@ -260,15 +263,18 @@ export type Database = {
           created_at: string
           display_id: string
           email: string | null
+          email_opt_in: boolean
           full_name: string
           id: string
           measurements: Json
           notes: string | null
+          outstanding_balance_reminded_at: string | null
           phone: string | null
           photo_url: string | null
           preferences: string | null
           self_registered: boolean
           self_registered_acknowledged: boolean
+          sms_opt_in: boolean
           status: Database["public"]["Enums"]["client_status"]
           updated_at: string
         }
@@ -277,15 +283,18 @@ export type Database = {
           created_at?: string
           display_id?: string
           email?: string | null
+          email_opt_in?: boolean
           full_name: string
           id?: string
           measurements?: Json
           notes?: string | null
+          outstanding_balance_reminded_at?: string | null
           phone?: string | null
           photo_url?: string | null
           preferences?: string | null
           self_registered?: boolean
           self_registered_acknowledged?: boolean
+          sms_opt_in?: boolean
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
@@ -294,15 +303,18 @@ export type Database = {
           created_at?: string
           display_id?: string
           email?: string | null
+          email_opt_in?: boolean
           full_name?: string
           id?: string
           measurements?: Json
           notes?: string | null
+          outstanding_balance_reminded_at?: string | null
           phone?: string | null
           photo_url?: string | null
           preferences?: string | null
           self_registered?: boolean
           self_registered_acknowledged?: boolean
+          sms_opt_in?: boolean
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
@@ -456,6 +468,99 @@ export type Database = {
           id?: string
           token?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_log: {
+        Row: {
+          body: string | null
+          channel: string
+          client_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          provider_message_id: string | null
+          recipient: string | null
+          status: string
+          subject: string | null
+          template_key: string
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          status: string
+          subject?: string | null
+          template_key: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          provider_message_id?: string | null
+          recipient?: string | null
+          status?: string
+          subject?: string | null
+          template_key?: string
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          category: string
+          created_at: string
+          email_body: string
+          email_subject: string
+          enabled: boolean
+          id: string
+          key: string
+          label: string
+          send_email: boolean
+          send_sms: boolean
+          sms_body: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email_body?: string
+          email_subject?: string
+          enabled?: boolean
+          id?: string
+          key: string
+          label: string
+          send_email?: boolean
+          send_sms?: boolean
+          sms_body?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email_body?: string
+          email_subject?: string
+          enabled?: boolean
+          id?: string
+          key?: string
+          label?: string
+          send_email?: boolean
+          send_sms?: boolean
+          sms_body?: string
+          updated_at?: string
         }
         Relationships: []
       }
