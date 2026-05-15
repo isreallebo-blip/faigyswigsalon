@@ -9,7 +9,7 @@ import { getPortalUnreadCount } from "@/lib/portal.functions";
 export const Route = createFileRoute("/portal")({
   beforeLoad: async ({ location }) => {
     const path = location.pathname;
-    const isAuthRoute = path === "/portal/login" || path === "/portal/verify";
+    const isAuthRoute = path === "/portal/login" || path === "/portal/verify" || path === "/portal/signup";
     const { data } = await supabase.auth.getSession();
     if (!data.session && !isAuthRoute) {
       throw redirect({ to: "/portal/login" });
