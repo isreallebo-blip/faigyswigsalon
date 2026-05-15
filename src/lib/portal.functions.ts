@@ -76,13 +76,28 @@ export const getPortalMe = createServerFn({ method: "GET" })
     const { userId, claims } = context;
     const { data } = await supabaseAdmin
       .from("clients")
-      .select("id, display_id, full_name, email, phone, photo_url, self_registered")
+      .select("id, display_id, full_name, email, phone, photo_url, self_registered, sms_opt_in, email_opt_in")
       .eq("auth_user_id", userId)
       .maybeSingle();
     return {
       client: data,
       userEmail: (claims.email as string) ?? null,
     };
+  });
+
+export const getPortalUnreadCount = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const clientId = await resolveClientId(context.userId);
+    if (!clientId) return { count: 0 };
+    const { count } = await supabaseAdmin
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("direction", "outbound")
+      .neq("channel", "internal_note")
+      .is("read_by_client_at", null);
+    return { count: count ?? 0 };
   });
 
 export const getPortalDashboard = createServerFn({ method: "GET" })
@@ -273,6 +288,8 @@ const updateProfileSchema = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   email: z.union([z.string().trim().email().max(255), z.literal("")]).optional(),
   photo_url: z.string().trim().max(2000).optional().or(z.literal("")),
+  sms_opt_in: z.boolean().optional(),
+  email_opt_in: z.boolean().optional(),
 });
 
 export const updatePortalProfile = createServerFn({ method: "POST" })
@@ -281,15 +298,15 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const clientId = await resolveClientId(context.userId);
     if (!clientId) throw new Error("No portal client linked");
-    const { error } = await supabaseAdmin
-      .from("clients")
-      .update({
-        full_name: data.full_name,
-        phone: data.phone || null,
-        email: data.email || null,
-        photo_url: data.photo_url || null,
-      })
-      .eq("id", clientId);
+    const update = {
+      full_name: data.full_name,
+      phone: data.phone || null,
+      email: data.email || null,
+      photo_url: data.photo_url || null,
+      ...(typeof data.sms_opt_in === "boolean" ? { sms_opt_in: data.sms_opt_in } : {}),
+      ...(typeof data.email_opt_in === "boolean" ? { email_opt_in: data.email_opt_in } : {}),
+    };
+    const { error } = await supabaseAdmin.from("clients").update(update).eq("id", clientId);
     if (error) throw error;
     void logPortalActivity({
       userId: context.userId,
