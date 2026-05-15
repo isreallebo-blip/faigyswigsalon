@@ -256,6 +256,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           display_id: string
           email: string | null
@@ -266,10 +267,13 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           preferences: string | null
+          self_registered: boolean
+          self_registered_acknowledged: boolean
           status: Database["public"]["Enums"]["client_status"]
           updated_at: string
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           display_id?: string
           email?: string | null
@@ -280,10 +284,13 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           preferences?: string | null
+          self_registered?: boolean
+          self_registered_acknowledged?: boolean
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           display_id?: string
           email?: string | null
@@ -294,6 +301,8 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           preferences?: string | null
+          self_registered?: boolean
+          self_registered_acknowledged?: boolean
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
@@ -915,6 +924,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_client_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -931,6 +941,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
