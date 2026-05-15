@@ -101,6 +101,29 @@ function ProfilePage() {
       </Card>
 
       <Card>
+        <p className="text-xs uppercase tracking-wider text-[oklch(0.55_0.13_75)] mb-3">
+          Notification preferences
+        </p>
+        <div className="space-y-3">
+          <Toggle
+            label="SMS notifications"
+            description="Appointment reminders, repair updates, payment receipts"
+            checked={form.sms_opt_in}
+            onChange={(v) => setForm({ ...form, sms_opt_in: v })}
+          />
+          <Toggle
+            label="Email notifications"
+            description="Confirmations, receipts and updates by email"
+            checked={form.email_opt_in}
+            onChange={(v) => setForm({ ...form, email_opt_in: v })}
+          />
+        </div>
+        <p className="mt-3 text-[11px] text-[oklch(0.45_0.02_60)]">
+          Click "Save changes" above to apply. You can also reply STOP to any text message to unsubscribe instantly.
+        </p>
+      </Card>
+
+      <Card>
         <p className="text-xs uppercase tracking-wider text-[oklch(0.55_0.13_75)]">
           Managed by salon staff
         </p>
