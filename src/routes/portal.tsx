@@ -27,7 +27,7 @@ function PortalLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
-  const isAuthRoute = path === "/portal/login" || path === "/portal/verify";
+  const isAuthRoute = path === "/portal/login" || path === "/portal/verify" || path === "/portal/signup";
 
   const signOut = async () => {
     await supabase.auth.signOut();
