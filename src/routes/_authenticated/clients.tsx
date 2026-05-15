@@ -4,11 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Phone, Mail, Upload, Trash2, Calendar, Wrench, Wallet, Sparkles } from "lucide-react";
+import { Plus, Search, Phone, Mail, Upload, Trash2, Calendar, Wrench, Wallet, Sparkles, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/lib/use-access";
+import { ClientImportDialog } from "@/components/client-import-dialog";
+import { capitalizeName, formatPhone, formatPhoneTyping, normalizeEmail } from "@/lib/client-import";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,9 +63,11 @@ export const Route = createFileRoute("/_authenticated/clients")({
 });
 
 function ClientsPage() {
+  const { isAdmin } = useAccess();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ClientStatus | "all">("all");
   const [openNew, setOpenNew] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const clients = useQuery({
@@ -97,22 +102,31 @@ function ClientsPage() {
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Roster</p>
           <h1 className="mt-1 font-display text-4xl">Clients</h1>
         </div>
-        <Dialog open={openNew} onOpenChange={setOpenNew}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> New client
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button variant="outline" className="gap-2" onClick={() => setOpenImport(true)}>
+              <FileSpreadsheet className="h-4 w-4" /> Import clients
             </Button>
-          </DialogTrigger>
-          <ClientDialog
-            mode="create"
-            onClose={() => setOpenNew(false)}
-            onSaved={(id) => {
-              setOpenNew(false);
-              setSelectedId(id);
-            }}
-          />
-        </Dialog>
+          )}
+          <Dialog open={openNew} onOpenChange={setOpenNew}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> New client
+              </Button>
+            </DialogTrigger>
+            <ClientDialog
+              mode="create"
+              onClose={() => setOpenNew(false)}
+              onSaved={(id) => {
+                setOpenNew(false);
+                setSelectedId(id);
+              }}
+            />
+          </Dialog>
+        </div>
       </div>
+
+      {isAdmin && <ClientImportDialog open={openImport} onOpenChange={setOpenImport} />}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
@@ -307,7 +321,12 @@ function ClientDialog({
       <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" error={form.formState.errors.full_name?.message}>
-            <Input {...form.register("full_name")} placeholder="Sarah Goldberg" />
+            <Input
+              {...form.register("full_name", {
+                onBlur: (e) => form.setValue("full_name", capitalizeName(e.target.value), { shouldDirty: true }),
+              })}
+              placeholder="Sarah Goldberg"
+            />
           </Field>
           <Field label="Status">
             <Select
@@ -325,10 +344,22 @@ function ClientDialog({
             </Select>
           </Field>
           <Field label="Phone">
-            <Input {...form.register("phone")} placeholder="(555) 123-4567" />
+            <Input
+              value={form.watch("phone") ?? ""}
+              onChange={(e) => form.setValue("phone", formatPhoneTyping(e.target.value), { shouldDirty: true })}
+              onBlur={(e) => form.setValue("phone", formatPhone(e.target.value), { shouldDirty: true })}
+              placeholder="555-123-4567"
+              inputMode="tel"
+            />
           </Field>
           <Field label="Email" error={form.formState.errors.email?.message}>
-            <Input {...form.register("email")} type="email" placeholder="sarah@example.com" />
+            <Input
+              {...form.register("email", {
+                onBlur: (e) => form.setValue("email", normalizeEmail(e.target.value), { shouldDirty: true }),
+              })}
+              type="email"
+              placeholder="sarah@example.com"
+            />
           </Field>
         </div>
 
