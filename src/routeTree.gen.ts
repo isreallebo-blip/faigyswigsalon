@@ -10,10 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as PortalVerifyRouteImport } from './routes/portal.verify'
+import { Route as PortalLoginRouteImport } from './routes/portal.login'
 import { Route as AuthenticatedWorkflowsRouteImport } from './routes/_authenticated/workflows'
 import { Route as AuthenticatedVendorsRouteImport } from './routes/_authenticated/vendors'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -37,6 +40,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -55,6 +63,16 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const PortalVerifyRoute = PortalVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalLoginRoute = PortalLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PortalRoute,
 } as any)
 const AuthenticatedWorkflowsRoute = AuthenticatedWorkflowsRouteImport.update({
   id: '/workflows',
@@ -152,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -162,6 +181,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/verify': typeof PortalVerifyRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -174,6 +195,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -183,6 +205,8 @@ export interface FileRoutesByTo {
   '/repairs': typeof AuthenticatedRepairsRoute
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/verify': typeof PortalVerifyRoute
   '/': typeof AuthenticatedIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
@@ -198,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/portal': typeof PortalRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
@@ -208,6 +233,8 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/vendors': typeof AuthenticatedVendorsRoute
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/verify': typeof PortalVerifyRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
@@ -224,6 +251,7 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/portal'
     | '/reset-password'
     | '/appointments'
     | '/clients'
@@ -234,6 +262,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/vendors'
     | '/workflows'
+    | '/portal/login'
+    | '/portal/verify'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
@@ -246,6 +276,7 @@ export interface FileRouteTypes {
   to:
     | '/forgot-password'
     | '/login'
+    | '/portal'
     | '/reset-password'
     | '/appointments'
     | '/clients'
@@ -255,6 +286,8 @@ export interface FileRouteTypes {
     | '/repairs'
     | '/vendors'
     | '/workflows'
+    | '/portal/login'
+    | '/portal/verify'
     | '/'
     | '/settings/audit-log'
     | '/settings/calendar'
@@ -269,6 +302,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/forgot-password'
     | '/login'
+    | '/portal'
     | '/reset-password'
     | '/_authenticated/appointments'
     | '/_authenticated/clients'
@@ -279,6 +313,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/vendors'
     | '/_authenticated/workflows'
+    | '/portal/login'
+    | '/portal/verify'
     | '/_authenticated/'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
@@ -294,6 +330,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -308,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -337,6 +381,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/portal/verify': {
+      id: '/portal/verify'
+      path: '/verify'
+      fullPath: '/portal/verify'
+      preLoaderRoute: typeof PortalVerifyRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/login': {
+      id: '/portal/login'
+      path: '/login'
+      fullPath: '/portal/login'
+      preLoaderRoute: typeof PortalLoginRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/_authenticated/workflows': {
       id: '/_authenticated/workflows'
@@ -509,10 +567,24 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface PortalRouteChildren {
+  PortalLoginRoute: typeof PortalLoginRoute
+  PortalVerifyRoute: typeof PortalVerifyRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalLoginRoute: PortalLoginRoute,
+  PortalVerifyRoute: PortalVerifyRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
