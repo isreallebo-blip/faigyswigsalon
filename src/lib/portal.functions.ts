@@ -317,15 +317,6 @@ export const updatePortalProfile = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
-    void logPortalActivity({
-      userId: context.userId,
-      userEmail: (context.claims.email as string) ?? null,
-      action: "update",
-      summary: "Client updated their profile",
-      recordId: clientId,
-    });
-    return { ok: true };
-  });
 
 // Staff: count + acknowledge of self-registered clients
 export const getSelfRegisteredCount = createServerFn({ method: "GET" })
