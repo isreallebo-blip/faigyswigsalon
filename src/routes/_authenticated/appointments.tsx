@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   format, addDays, startOfWeek, endOfWeek, startOfDay, endOfDay,
   isSameDay, parseISO, addWeeks, subWeeks,
+  startOfMonth, endOfMonth, addMonths, subMonths,
+  startOfYear, endOfYear, addYears, subYears, isSameMonth,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays } from "lucide-react";
 import { z } from "zod";
@@ -53,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/appointments")({
 });
 
 function AppointmentsPage() {
-  const [view, setView] = useState<"day" | "week">("week");
+  const [view, setView] = useState<"day" | "week" | "month" | "year">("week");
   const [cursor, setCursor] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Appt | null>(null);
@@ -62,7 +64,11 @@ function AppointmentsPage() {
 
   const range = useMemo(() => {
     if (view === "day") return { from: startOfDay(cursor), to: endOfDay(cursor) };
-    return { from: startOfWeek(cursor), to: endOfWeek(cursor) };
+    if (view === "week") return { from: startOfWeek(cursor), to: endOfWeek(cursor) };
+    if (view === "month") {
+      return { from: startOfWeek(startOfMonth(cursor)), to: endOfWeek(endOfMonth(cursor)) };
+    }
+    return { from: startOfYear(cursor), to: endOfYear(cursor) };
   }, [view, cursor]);
 
   const appts = useQuery({
@@ -81,14 +87,42 @@ function AppointmentsPage() {
 
   const days = useMemo(() => {
     if (view === "day") return [cursor];
-    const start = startOfWeek(cursor);
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    if (view === "week") {
+      const start = startOfWeek(cursor);
+      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    }
+    if (view === "month") {
+      const start = startOfWeek(startOfMonth(cursor));
+      const end = endOfWeek(endOfMonth(cursor));
+      const count = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+      return Array.from({ length: count }, (_, i) => addDays(start, i));
+    }
+    return [];
+  }, [view, cursor]);
+
+  const months = useMemo(() => {
+    if (view !== "year") return [];
+    const start = startOfYear(cursor);
+    return Array.from({ length: 12 }, (_, i) => addMonths(start, i));
   }, [view, cursor]);
 
   const holidays = useMemo(
-    () => (showHolidays ? getHolidaysInRange(days[0], days[days.length - 1]) : []),
+    () => (showHolidays && days.length > 0 ? getHolidaysInRange(days[0], days[days.length - 1]) : []),
     [days, showHolidays],
   );
+
+  const goPrev = () => {
+    if (view === "day") setCursor(addDays(cursor, -1));
+    else if (view === "week") setCursor(subWeeks(cursor, 1));
+    else if (view === "month") setCursor(subMonths(cursor, 1));
+    else setCursor(subYears(cursor, 1));
+  };
+  const goNext = () => {
+    if (view === "day") setCursor(addDays(cursor, 1));
+    else if (view === "week") setCursor(addWeeks(cursor, 1));
+    else if (view === "month") setCursor(addMonths(cursor, 1));
+    else setCursor(addYears(cursor, 1));
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -102,13 +136,15 @@ function AppointmentsPage() {
             <TabsList>
               <TabsTrigger value="day">Day</TabsTrigger>
               <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button variant="outline" size="icon" onClick={() => setCursor(view === "day" ? addDays(cursor, -1) : subWeeks(cursor, 1))}>
+          <Button variant="outline" size="icon" onClick={goPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCursor(new Date())}>Today</Button>
-          <Button variant="outline" size="icon" onClick={() => setCursor(view === "day" ? addDays(cursor, 1) : addWeeks(cursor, 1))}>
+          <Button variant="outline" size="icon" onClick={goNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Dialog open={open || !!editing} onOpenChange={(o) => { if (!o) { setOpen(false); setEditing(null); } }}>
@@ -126,13 +162,92 @@ function AppointmentsPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {view === "day"
-          ? format(cursor, "EEEE, MMMM d, yyyy")
-          : `${format(range.from, "MMM d")} – ${format(range.to, "MMM d, yyyy")}`}
+        {view === "day" && format(cursor, "EEEE, MMMM d, yyyy")}
+        {view === "week" && `${format(range.from, "MMM d")} – ${format(range.to, "MMM d, yyyy")}`}
+        {view === "month" && format(cursor, "MMMM yyyy")}
+        {view === "year" && format(cursor, "yyyy")}
       </p>
 
       {appts.isLoading ? (
         <Skeleton className="h-64 w-full" />
+      ) : view === "year" ? (
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {months.map((m) => {
+            const monthAppts = (appts.data ?? []).filter((a) => isSameMonth(parseISO(a.starts_at), m));
+            return (
+              <Card
+                key={m.toISOString()}
+                className="cursor-pointer transition hover:border-gold"
+                onClick={() => { setCursor(m); setView("month"); }}
+              >
+                <CardContent className="p-4">
+                  <div className="mb-2 flex items-baseline justify-between border-b border-border pb-2">
+                    <span className="font-display text-lg">{format(m, "MMMM")}</span>
+                    <span className="text-xs text-muted-foreground">{format(m, "yyyy")}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {monthAppts.length === 0 ? "No appointments" : `${monthAppts.length} appointment${monthAppts.length === 1 ? "" : "s"}`}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : view === "month" ? (
+        <div>
+          <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[11px] uppercase tracking-wider text-muted-foreground">
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => <div key={d}>{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {days.map((day) => {
+              const dayAppts = (appts.data ?? []).filter((a) => isSameDay(parseISO(a.starts_at), day));
+              const dayHolidays = holidaysForDay(day, holidays);
+              const isShabbat = isShabbatColumn(day);
+              const inMonth = isSameMonth(day, cursor);
+              return (
+                <Card
+                  key={day.toISOString()}
+                  className={cn(
+                    "min-h-[110px]",
+                    !inMonth && "opacity-50",
+                    isShabbat && "bg-gold-soft/10",
+                  )}
+                >
+                  <CardContent className="p-2">
+                    <div className="mb-1 flex items-baseline justify-between">
+                      <span className="text-sm font-medium">{format(day, "d")}</span>
+                      {showDates && (
+                        <span dir="rtl" className="text-[9px] text-muted-foreground">
+                          {hebrewDateString(day)}
+                        </span>
+                      )}
+                    </div>
+                    {dayHolidays.length > 0 && (
+                      <div dir="rtl" className="mb-1 truncate rounded bg-gold/15 px-1 text-right text-[9px] font-medium text-gold">
+                        {dayHolidays[0].title}
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      {dayAppts.slice(0, 3).map((a) => (
+                        <button
+                          key={a.id}
+                          onClick={() => setEditing(a)}
+                          className="block w-full truncate rounded bg-card px-1 text-left text-[10px] hover:text-gold"
+                        >
+                          <span className="tabular-nums">{format(parseISO(a.starts_at), "h:mm")}</span>{" "}
+                          {a.client?.full_name ?? "—"}
+                        </button>
+                      ))}
+                      {dayAppts.length > 3 && (
+                        <p className="text-[10px] text-muted-foreground">+{dayAppts.length - 3} more</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       ) : (
         <div className={view === "day" ? "space-y-3" : "grid gap-3 md:grid-cols-2 lg:grid-cols-7"}>
           {days.map((day) => {
