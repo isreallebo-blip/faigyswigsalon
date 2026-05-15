@@ -151,17 +151,26 @@ export async function appendMessage(opts: {
     .single();
 
   if (opts.channel !== "internal_note") {
-    const update: Record<string, unknown> = {
-      last_message_at: new Date().toISOString(),
-      last_message_preview: preview,
-    };
     if (opts.direction === "inbound") {
-      update.status = "unread";
-      update.last_inbound_channel = opts.channel;
+      await supabaseAdmin
+        .from("conversations")
+        .update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: preview,
+          status: "unread",
+          last_inbound_channel: opts.channel,
+        })
+        .eq("id", opts.conversationId);
     } else {
-      update.status = "replied";
+      await supabaseAdmin
+        .from("conversations")
+        .update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: preview,
+          status: "replied",
+        })
+        .eq("id", opts.conversationId);
     }
-    await supabaseAdmin.from("conversations").update(update).eq("id", opts.conversationId);
   }
 
   return inserted.data?.id as string | undefined;

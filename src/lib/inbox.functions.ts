@@ -272,7 +272,19 @@ export const portalListMessages = createServerFn({ method: "GET" })
       .from("clients")
       .select("id")
       .maybeSingle();
-    if (!client) return { conversation: null, messages: [] as unknown[] };
+    type Msg = {
+      id: string;
+      direction: "inbound" | "outbound";
+      channel: "sms" | "email" | "portal" | "internal_note";
+      body: string;
+      sender_name: string | null;
+      created_at: string;
+      delivery_status: string;
+      read_by_client_at: string | null;
+    };
+    type Conv = { id: string; status: string };
+    const empty: { conversation: Conv | null; messages: Msg[] } = { conversation: null, messages: [] };
+    if (!client) return empty;
     const clientId = client.id as string;
     const { data: conv } = await context.supabase
       .from("conversations")
@@ -281,7 +293,7 @@ export const portalListMessages = createServerFn({ method: "GET" })
       .order("last_message_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!conv) return { conversation: null, messages: [] };
+    if (!conv) return empty;
     const { data: messages } = await context.supabase
       .from("messages")
       .select("id, direction, channel, body, sender_name, created_at, delivery_status, read_by_client_at")
