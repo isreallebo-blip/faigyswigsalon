@@ -232,7 +232,7 @@ function useClientOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, full_name")
+        .select("id, full_name, display_id")
         .order("full_name");
       if (error) throw error;
       return data;
