@@ -62,8 +62,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Maison — Wig Salon CRM" },
+      { title: "Faigys — Wig Salon CRM" },
       { name: "description", content: "Elegant CRM for a luxury wig salon — clients, inventory, appointments, payments." },
+      { property: "og:title", content: "Faigys — Wig Salon CRM" },
+      { name: "twitter:title", content: "Faigys — Wig Salon CRM" },
+      { property: "og:description", content: "Elegant CRM for a luxury wig salon — clients, inventory, appointments, payments." },
+      { name: "twitter:description", content: "Elegant CRM for a luxury wig salon — clients, inventory, appointments, payments." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/61f17702-3510-441e-bac1-d4a04fa66ead/id-preview-be3d0fc6--d77a319c-9d20-4960-b548-f00aec75fb6e.lovable.app-1778823595692.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/61f17702-3510-441e-bac1-d4a04fa66ead/id-preview-be3d0fc6--d77a319c-9d20-4960-b548-f00aec75fb6e.lovable.app-1778823595692.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
