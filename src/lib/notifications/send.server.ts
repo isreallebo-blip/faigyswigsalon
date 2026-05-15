@@ -1,6 +1,7 @@
 // Server-only notification sending. Twilio (SMS) + Resend (email).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { HDate } from "@hebcal/core";
+import { getOrCreateOpenConversation, replyToForConversation, appendMessage } from "@/lib/inbox/send.server";
 
 export type NotifVars = {
   firstName?: string;
