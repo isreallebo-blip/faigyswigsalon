@@ -11,7 +11,7 @@ export function useVendorOptions(filterType?: "supplier" | "repair") {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, name, type, status")
+        .select("id, name, type, status, display_id")
         .eq("status", "active")
         .order("name");
       if (error) throw error;
@@ -47,6 +47,7 @@ export function VendorSelect({
         <SelectItem value={NONE}>None</SelectItem>
         {data?.map((v) => (
           <SelectItem key={v.id} value={v.id}>
+            <span className="font-mono text-[10px] text-muted-foreground mr-2">{v.display_id}</span>
             {v.name}
           </SelectItem>
         ))}

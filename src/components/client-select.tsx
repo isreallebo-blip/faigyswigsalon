@@ -8,7 +8,7 @@ export function useClientOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, full_name")
+        .select("id, full_name, display_id")
         .order("full_name");
       if (error) throw error;
       return data;
@@ -34,6 +34,7 @@ export function ClientSelect({
       <SelectContent>
         {data?.map((c) => (
           <SelectItem key={c.id} value={c.id}>
+            <span className="font-mono text-[10px] text-muted-foreground mr-2">{c.display_id}</span>
             {c.full_name}
           </SelectItem>
         ))}
