@@ -85,15 +85,18 @@ async function sendEmail(
   to: string,
   subject: string,
   html: string,
+  replyTo?: string,
 ): Promise<{ id?: string; error?: string }> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!key || !from) return { error: "Resend not configured" };
   try {
+    const body: Record<string, unknown> = { from, to: [to], subject, html };
+    if (replyTo) body.reply_to = replyTo;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html }),
+      body: JSON.stringify(body),
     });
     const json = await res.json() as { id?: string; message?: string };
     if (!res.ok) return { error: json.message ?? `Resend ${res.status}` };
