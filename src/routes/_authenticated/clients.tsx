@@ -63,9 +63,11 @@ export const Route = createFileRoute("/_authenticated/clients")({
 });
 
 function ClientsPage() {
+  const { isAdmin } = useAccess();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ClientStatus | "all">("all");
   const [openNew, setOpenNew] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const clients = useQuery({
