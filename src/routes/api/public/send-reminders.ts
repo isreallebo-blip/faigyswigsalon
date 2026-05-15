@@ -49,7 +49,7 @@ async function handle(request: Request) {
 
     const { data: appts, error } = await supabaseAdmin
       .from("appointments")
-      .select("id, client_id, type, starts_at, " + w.column + ", clients:client_id(full_name, phone)")
+      .select("id, client_id, type, starts_at, reminder_24h_sent_at, reminder_2h_sent_at")
       .gte("starts_at", from)
       .lte("starts_at", to)
       .in("status", ["scheduled", "confirmed"])
@@ -61,12 +61,14 @@ async function handle(request: Request) {
 
     let processed = 0;
     for (const a of appts ?? []) {
-      // TODO: send actual SMS via Twilio (or chosen provider) using
-      // (a as any).clients?.phone. Requires TWILIO_* env secrets.
+      // TODO: send actual SMS via Twilio (or chosen provider). Requires
+      // TWILIO_* env secrets and a join to clients.phone here.
       const stamp = new Date().toISOString();
+      const update: Record<string, string> = { [w.column]: stamp };
       const { error: updErr } = await supabaseAdmin
         .from("appointments")
-        .update({ [w.column]: stamp })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(update as any)
         .eq("id", a.id);
       if (updErr) continue;
 
@@ -75,7 +77,7 @@ async function handle(request: Request) {
         summary: `${w.key} reminder marked for appointment`,
         ref_id: a.id,
         ref_table: "appointments",
-        client_id: (a as { client_id: string | null }).client_id,
+        client_id: a.client_id,
         data: { window: w.key },
       });
       processed += 1;

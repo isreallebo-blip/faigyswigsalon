@@ -24,6 +24,7 @@ import { Route as AuthenticatedInventoryRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -102,6 +103,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiPublicSendRemindersRoute = ApiPublicSendRemindersRouteImport.update({
+  id: '/api/public/send-reminders',
+  path: '/api/public/send-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSettingsUsersRoute =
   AuthenticatedSettingsUsersRouteImport.update({
     id: '/users',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/': typeof AuthenticatedIndexRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/vendors'
     | '/workflows'
     | '/settings/users'
+    | '/api/public/send-reminders'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/workflows'
     | '/'
     | '/settings/users'
+    | '/api/public/send-reminders'
     | '/settings'
   id:
     | '__root__'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/workflows'
     | '/_authenticated/'
     | '/_authenticated/settings/users'
+    | '/api/public/send-reminders'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/public/send-reminders': {
+      id: '/api/public/send-reminders'
+      path: '/api/public/send-reminders'
+      fullPath: '/api/public/send-reminders'
+      preLoaderRoute: typeof ApiPublicSendRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/users': {
       id: '/_authenticated/settings/users'
       path: '/users'
@@ -389,6 +409,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
