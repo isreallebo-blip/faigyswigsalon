@@ -266,6 +266,7 @@ function WigDialog({
       quantity: wig?.quantity ?? 1,
       status: wig?.status ?? "available",
       reserved_for_client_id: wig?.reserved_for_client_id ?? null,
+      vendor_id: wig?.vendor_id ?? null,
       notes: wig?.notes ?? "",
     },
   });
