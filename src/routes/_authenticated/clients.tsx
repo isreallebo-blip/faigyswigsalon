@@ -467,8 +467,14 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
 
   const del = useMutation({
     mutationFn: async () => {
+      const label = client.data?.full_name ?? "Client";
       const { error } = await supabase.from("clients").delete().eq("id", clientId);
       if (error) throw error;
+      await logAudit({
+        action: "delete", module: "client", recordId: clientId, recordLabel: label,
+        summary: `Client ${label} deleted`,
+        before: client.data as unknown as Record<string, unknown>,
+      });
     },
     onSuccess: () => {
       toast.success("Client deleted");
