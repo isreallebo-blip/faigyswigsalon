@@ -17,6 +17,51 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAccess } from "@/lib/use-access";
+import { useMyProfile } from "@/lib/use-profile";
+import { UserAvatar } from "@/components/user-avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function UserMenu({ onSignOut }: { onSignOut: () => void }) {
+  const { data: profile } = useMyProfile();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label="Open profile menu"
+      >
+        <UserAvatar profile={profile ?? undefined} size={32} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium truncate">
+              {profile?.full_name || profile?.email || "Account"}
+            </span>
+            {profile?.email && profile?.full_name && (
+              <span className="text-xs text-muted-foreground truncate">{profile.email}</span>
+            )}
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/profile">My profile</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onSignOut} className="text-destructive">
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 const baseNav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -133,7 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="hidden lg:block text-xs uppercase tracking-[0.2em] text-muted-foreground">
             {nav.find((n) => (n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)))?.label ?? ""}
           </div>
-          <div />
+          <UserMenu onSignOut={handleSignOut} />
         </header>
         <main className="flex-1 px-4 py-6 lg:px-10 lg:py-10">{children}</main>
       </div>
