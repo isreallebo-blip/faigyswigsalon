@@ -197,6 +197,8 @@ function PaymentDialog({
     },
   });
 
+  const [voidReason, setVoidReason] = useState("");
+
   const save = useMutation({
     mutationFn: async (v: z.infer<typeof paymentSchema>) => {
       const payload = {
@@ -209,24 +211,50 @@ function PaymentDialog({
         description: v.description || null,
       };
       if (payment) {
-        const { error } = await supabase.from("payments").update(payload).eq("id", payment.id);
+        const { data, error } = await supabase.from("payments").update(payload).eq("id", payment.id).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "update", module: "payment", recordId: payment.id,
+          recordLabel: `$${payment.amount} on ${payment.date}`,
+          summary: "Payment updated",
+          before: payment as unknown as Record<string, unknown>,
+          after: data as unknown as Record<string, unknown>,
+        });
       } else {
-        const { error } = await supabase.from("payments").insert(payload);
+        const { data, error } = await supabase.from("payments").insert(payload).select().single();
         if (error) throw error;
+        await logAudit({
+          action: "create", module: "payment", recordId: data.id,
+          recordLabel: `$${data.amount} on ${data.date}`,
+          summary: `Payment of $${data.amount} recorded`,
+          after: data as unknown as Record<string, unknown>,
+        });
       }
     },
     onSuccess: () => { toast.success("Saved"); onSaved(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const remove = useMutation({
+  const voidPayment = useMutation({
     mutationFn: async () => {
       if (!payment) return;
-      const { error } = await supabase.from("payments").delete().eq("id", payment.id);
+      if (!voidReason.trim()) throw new Error("Void reason is required");
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("payments")
+        .update({ voided_at: new Date().toISOString(), voided_by: user?.id ?? null, void_reason: voidReason.trim() })
+        .eq("id", payment.id).select().single();
       if (error) throw error;
+      await logAudit({
+        action: "void", module: "payment", recordId: payment.id,
+        recordLabel: `$${payment.amount} on ${payment.date}`,
+        summary: `Payment voided: ${voidReason.trim()}`,
+        before: payment as unknown as Record<string, unknown>,
+        after: data as unknown as Record<string, unknown>,
+      });
     },
-    onSuccess: () => { toast.success("Removed"); onSaved(); },
+    onSuccess: () => { toast.success("Payment voided"); onSaved(); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
