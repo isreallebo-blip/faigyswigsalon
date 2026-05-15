@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWorkflowsRouteImport } from './routes/_authenticated/workflows'
+import { Route as AuthenticatedVendorsRouteImport } from './routes/_authenticated/vendors'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedRepairsRouteImport } from './routes/_authenticated/repairs'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -52,6 +53,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedWorkflowsRoute = AuthenticatedWorkflowsRouteImport.update({
   id: '/workflows',
   path: '/workflows',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedVendorsRoute = AuthenticatedVendorsRouteImport.update({
+  id: '/vendors',
+  path: '/vendors',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/repairs': typeof AuthenticatedRepairsRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/repairs': typeof AuthenticatedRepairsRoute
+  '/vendors': typeof AuthenticatedVendorsRoute
   '/workflows': typeof AuthenticatedWorkflowsRoute
   '/': typeof AuthenticatedIndexRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/repairs': typeof AuthenticatedRepairsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/_authenticated/vendors': typeof AuthenticatedVendorsRoute
   '/_authenticated/workflows': typeof AuthenticatedWorkflowsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/repairs'
     | '/settings'
+    | '/vendors'
     | '/workflows'
     | '/settings/users'
     | '/settings/'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/repairs'
+    | '/vendors'
     | '/workflows'
     | '/'
     | '/settings/users'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/repairs'
     | '/_authenticated/settings'
+    | '/_authenticated/vendors'
     | '/_authenticated/workflows'
     | '/_authenticated/'
     | '/_authenticated/settings/users'
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       path: '/workflows'
       fullPath: '/workflows'
       preLoaderRoute: typeof AuthenticatedWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vendors': {
+      id: '/_authenticated/vendors'
+      path: '/vendors'
+      fullPath: '/vendors'
+      preLoaderRoute: typeof AuthenticatedVendorsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -343,6 +362,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRepairsRoute: typeof AuthenticatedRepairsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedVendorsRoute: typeof AuthenticatedVendorsRoute
   AuthenticatedWorkflowsRoute: typeof AuthenticatedWorkflowsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -355,6 +375,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRepairsRoute: AuthenticatedRepairsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedVendorsRoute: AuthenticatedVendorsRoute,
   AuthenticatedWorkflowsRoute: AuthenticatedWorkflowsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }

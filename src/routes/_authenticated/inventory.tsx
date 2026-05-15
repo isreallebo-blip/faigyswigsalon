@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { VendorSelect } from "@/components/vendor-select";
 
 type Wig = Database["public"]["Tables"]["wigs"]["Row"];
 type WigStatus = Database["public"]["Enums"]["wig_status"];
@@ -52,13 +53,14 @@ const wigSchema = z.object({
   quantity: z.coerce.number().int().min(0),
   status: z.enum(["available", "reserved", "sent_for_repair", "sold"]),
   reserved_for_client_id: z.string().uuid().nullable().optional(),
+  vendor_id: z.string().uuid().nullable().optional(),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 type WigFormValues = z.infer<typeof wigSchema>;
 
 const customOrderSchema = z.object({
   client_id: z.string().uuid().nullable().optional(),
-  vendor: z.string().trim().max(120).optional().or(z.literal("")),
+  vendor_id: z.string().uuid().nullable().optional(),
   specs: z.string().trim().max(2000).optional().or(z.literal("")),
   expected_delivery: z.string().optional().or(z.literal("")),
   received_date: z.string().optional().or(z.literal("")),
@@ -106,10 +108,10 @@ function WigCatalog() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wigs")
-        .select("*, reserved_for:reserved_for_client_id(full_name)")
+        .select("*, reserved_for:reserved_for_client_id(full_name), vendor:vendor_id(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as (Wig & { reserved_for: { full_name: string } | null })[];
+      return data as (Wig & { reserved_for: { full_name: string } | null; vendor: { name: string } | null })[];
     },
   });
 
@@ -203,7 +205,7 @@ function WigCatalog() {
                     </Badge>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Qty {w.quantity}</span>
+                    <span className="truncate">{w.vendor?.name ? `From ${w.vendor.name}` : `Qty ${w.quantity}`}</span>
                     <span className="tabular-nums">${Number(w.price).toLocaleString()}</span>
                   </div>
                 </CardContent>
@@ -264,6 +266,7 @@ function WigDialog({
       quantity: wig?.quantity ?? 1,
       status: wig?.status ?? "available",
       reserved_for_client_id: wig?.reserved_for_client_id ?? null,
+      vendor_id: wig?.vendor_id ?? null,
       notes: wig?.notes ?? "",
     },
   });
@@ -284,6 +287,7 @@ function WigDialog({
         quantity: values.quantity,
         status: values.status,
         reserved_for_client_id: values.status === "reserved" ? values.reserved_for_client_id ?? null : null,
+        vendor_id: values.vendor_id ?? null,
         notes: values.notes || null,
       };
       if (mode === "edit" && wig) {
@@ -390,6 +394,14 @@ function WigDialog({
             </Field>
           )}
         </div>
+
+        <Field label="Vendor (supplier)">
+          <VendorSelect
+            value={form.watch("vendor_id") ?? null}
+            onChange={(id) => form.setValue("vendor_id", id, { shouldDirty: true })}
+            filterType="supplier"
+          />
+        </Field>
 
         <Field label="Notes">
           <Textarea rows={2} {...form.register("notes")} />
@@ -730,7 +742,7 @@ function CustomOrderDialog({
     resolver: zodResolver(customOrderSchema),
     defaultValues: {
       client_id: order?.client_id ?? null,
-      vendor: order?.vendor ?? "",
+      vendor_id: order?.vendor_id ?? null,
       specs: order?.specs ?? "",
       expected_delivery: order?.expected_delivery ?? "",
       received_date: order?.received_date ?? "",
@@ -742,7 +754,7 @@ function CustomOrderDialog({
     mutationFn: async (v: CustomOrderFormValues) => {
       const payload = {
         client_id: v.client_id || null,
-        vendor: v.vendor || null,
+        vendor_id: v.vendor_id || null,
         specs: v.specs || null,
         expected_delivery: v.expected_delivery || null,
         received_date: v.received_date || null,
@@ -789,7 +801,11 @@ function CustomOrderDialog({
             </Select>
           </Field>
           <Field label="Vendor">
-            <Input {...form.register("vendor")} placeholder="Vendor name" />
+            <VendorSelect
+              value={form.watch("vendor_id") ?? null}
+              onChange={(id) => form.setValue("vendor_id", id, { shouldDirty: true })}
+              filterType="supplier"
+            />
           </Field>
           <Field label="Expected delivery">
             <Input type="date" {...form.register("expected_delivery")} />

@@ -256,6 +256,7 @@ export type Database = {
           specs: string | null
           updated_at: string
           vendor: string | null
+          vendor_id: string | null
           wig_id: string | null
         }
         Insert: {
@@ -268,6 +269,7 @@ export type Database = {
           specs?: string | null
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
           wig_id?: string | null
         }
         Update: {
@@ -280,6 +282,7 @@ export type Database = {
           specs?: string | null
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
           wig_id?: string | null
         }
         Relationships: [
@@ -288,6 +291,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
           {
@@ -408,6 +418,7 @@ export type Database = {
           status: Database["public"]["Enums"]["repair_status"]
           updated_at: string
           vendor: string
+          vendor_id: string | null
           wig_id: string | null
           work_requested: string | null
           workflow_id: string | null
@@ -424,6 +435,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["repair_status"]
           updated_at?: string
           vendor: string
+          vendor_id?: string | null
           wig_id?: string | null
           work_requested?: string | null
           workflow_id?: string | null
@@ -440,6 +452,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["repair_status"]
           updated_at?: string
           vendor?: string
+          vendor_id?: string | null
           wig_id?: string | null
           work_requested?: string | null
           workflow_id?: string | null
@@ -450,6 +463,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repairs_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
           {
@@ -537,6 +557,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["vendor_status"]
+          type: Database["public"]["Enums"]["vendor_type"]
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          type?: Database["public"]["Enums"]["vendor_type"]
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          type?: Database["public"]["Enums"]["vendor_type"]
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       wigs: {
         Row: {
           brand: string | null
@@ -554,6 +619,7 @@ export type Database = {
           status: Database["public"]["Enums"]["wig_status"]
           style: string | null
           updated_at: string
+          vendor_id: string | null
           wig_code: string | null
         }
         Insert: {
@@ -572,6 +638,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["wig_status"]
           style?: string | null
           updated_at?: string
+          vendor_id?: string | null
           wig_code?: string | null
         }
         Update: {
@@ -590,6 +657,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["wig_status"]
           style?: string | null
           updated_at?: string
+          vendor_id?: string | null
           wig_code?: string | null
         }
         Relationships: [
@@ -598,6 +666,13 @@ export type Database = {
             columns: ["reserved_for_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wigs_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -686,6 +761,8 @@ export type Database = {
       repair_status: "sent_to_vendor" | "in_progress" | "returned" | "issue"
       step_status: "pending" | "in_progress" | "completed" | "skipped"
       user_status: "active" | "invited" | "disabled"
+      vendor_status: "active" | "inactive"
+      vendor_type: "supplier" | "repair" | "both"
       wig_status: "available" | "reserved" | "sent_for_repair" | "sold"
       workflow_status: "open" | "completed" | "cancelled"
       workflow_type: "sale_cut" | "wash_set"
@@ -833,6 +910,8 @@ export const Constants = {
       repair_status: ["sent_to_vendor", "in_progress", "returned", "issue"],
       step_status: ["pending", "in_progress", "completed", "skipped"],
       user_status: ["active", "invited", "disabled"],
+      vendor_status: ["active", "inactive"],
+      vendor_type: ["supplier", "repair", "both"],
       wig_status: ["available", "reserved", "sent_for_repair", "sold"],
       workflow_status: ["open", "completed", "cancelled"],
       workflow_type: ["sale_cut", "wash_set"],
