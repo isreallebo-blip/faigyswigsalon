@@ -72,6 +72,8 @@ function UsersPage() {
   const setStatus = useServerFn(setUserStatus);
   const resend = useServerFn(resendInvite);
   const access = useServerFn(getMyAccess);
+  const resetLockout = useServerFn(adminResetLockout);
+  const verify = useVerifiedAction();
 
   const meQ = useQuery({ queryKey: ["my-access"], queryFn: () => access() });
   const usersQ = useQuery({ queryKey: ["users"], queryFn: () => list() });
