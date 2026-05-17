@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
-import { Users as UsersIcon, CalendarDays, ScrollText } from "lucide-react";
+import { Users as UsersIcon, CalendarDays, ScrollText, ShieldCheck } from "lucide-react";
 import { useAccess } from "@/lib/use-access";
 import { cn } from "@/lib/utils";
 import { getMyAccess } from "@/lib/admin-users.functions";

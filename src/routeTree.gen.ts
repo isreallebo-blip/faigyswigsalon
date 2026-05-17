@@ -43,6 +43,7 @@ import { Route as ApiPublicResendInboundRouteImport } from './routes/api/public/
 import { Route as ApiPublicResendEventsRouteImport } from './routes/api/public/resend-events'
 import { Route as ApiPublicConfirmEmailChangeRouteImport } from './routes/api/public/confirm-email-change'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
+import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -222,6 +223,12 @@ const AuthenticatedSettingsUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsClientPortalRoute =
+  AuthenticatedSettingsClientPortalRouteImport.update({
+    id: '/client-portal',
+    path: '/client-portal',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsCalendarRoute =
   AuthenticatedSettingsCalendarRouteImport.update({
     id: '/calendar',
@@ -279,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
+  '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
@@ -317,6 +325,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
+  '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
@@ -359,6 +368,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
+  '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/settings/audit-log'
     | '/settings/calendar'
+    | '/settings/client-portal'
     | '/settings/users'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/settings/audit-log'
     | '/settings/calendar'
+    | '/settings/client-portal'
     | '/settings/users'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
@@ -480,6 +492,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
+    | '/_authenticated/settings/client-portal'
     | '/_authenticated/settings/users'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
@@ -750,6 +763,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsUsersRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/client-portal': {
+      id: '/_authenticated/settings/client-portal'
+      path: '/client-portal'
+      fullPath: '/settings/client-portal'
+      preLoaderRoute: typeof AuthenticatedSettingsClientPortalRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/calendar': {
       id: '/_authenticated/settings/calendar'
       path: '/calendar'
@@ -791,6 +811,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsCalendarRoute: typeof AuthenticatedSettingsCalendarRoute
+  AuthenticatedSettingsClientPortalRoute: typeof AuthenticatedSettingsClientPortalRoute
   AuthenticatedSettingsUsersRoute: typeof AuthenticatedSettingsUsersRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
@@ -798,6 +819,8 @@ interface AuthenticatedSettingsRouteChildren {
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAuditLogRoute: AuthenticatedSettingsAuditLogRoute,
   AuthenticatedSettingsCalendarRoute: AuthenticatedSettingsCalendarRoute,
+  AuthenticatedSettingsClientPortalRoute:
+    AuthenticatedSettingsClientPortalRoute,
   AuthenticatedSettingsUsersRoute: AuthenticatedSettingsUsersRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
