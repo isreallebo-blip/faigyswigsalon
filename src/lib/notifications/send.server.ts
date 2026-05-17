@@ -109,7 +109,8 @@ async function getOrCreateUnsubscribeToken(email: string): Promise<string> {
     .from("email_unsubscribe_tokens")
     .select("token")
     .eq("email", normalized)
-    .single();
+    .maybeSingle();
+  if (!created?.token) throw new Error("Could not create unsubscribe token");
   return created.token;
 }
 
