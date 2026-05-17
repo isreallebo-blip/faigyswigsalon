@@ -363,7 +363,7 @@ function PaymentDialog({
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <div>
             {payment && !payment.voided_at && (
-              <Button type="button" variant="ghost" onClick={() => voidPayment.mutate()} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
+              <Button type="button" variant="ghost" onClick={() => verify.run(() => voidPayment.mutate(), { reason: "Verify your identity to void this payment." })} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
                 <Ban className="h-4 w-4" /> Void
               </Button>
             )}
