@@ -559,6 +559,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
 
       <ClientProfileTabs clientId={clientId} client={c}>
         <TabsContent value="profile" className="space-y-4 pt-4">
+          <PortalAccessCard clientId={clientId} />
           <Card>
             <CardContent className="p-5">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Measurements</div>
