@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientSelect } from "@/components/client-select";
+import { useVerifiedAction } from "@/components/verification-gate";
 
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type BankAccount = Database["public"]["Tables"]["bank_accounts"]["Row"];
