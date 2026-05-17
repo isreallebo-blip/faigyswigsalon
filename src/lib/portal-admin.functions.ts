@@ -218,19 +218,22 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
     const staff = await assertStaff(context.userId);
     const ip = await getActorIp();
     const client = await loadClient(data.clientId);
-    if (!client.email) throw new Error("Client must have an email address for a portal invite");
+    if (!client.email && !client.phone)
+      throw new Error("Client has no email or phone on file");
 
     const host = getRequestHost();
-    const redirectTo = `https://${host}/reset-password`;
-    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(client.email, {
-      data: {
-        portal: true,
-        full_name: client.full_name,
-        client_id: client.id,
-      },
-      redirectTo,
+    const portalLink = `https://${host}/portal/signup`;
+
+    const delivery = await sendNotification({
+      clientId: client.id,
+      templateKey: "portal_invite",
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink },
     });
-    if (inviteError) throw inviteError;
+
+    const delivered = delivery.results.some((r) => ["queued", "sent"].includes(r.status));
+    if (!delivered) {
+      throw new Error(delivery.results.find((r) => r.error)?.error ?? "Portal invite could not be delivered");
+    }
 
     await supabaseAdmin
       .from("clients")
@@ -248,7 +251,7 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
       eventType: "invite_sent",
       summary: `Portal invite sent by ${staff.full_name ?? staff.email}`,
       ip,
-      metadata: { delivery: "auth_invite" },
+      metadata: { portalLink },
     });
     await logStaffAudit({
       userId: context.userId,
@@ -283,11 +286,16 @@ export const sendPortalPasswordReset = createServerFn({ method: "POST" })
     if (linkErr) throw linkErr;
     const resetLink = linkData.properties?.action_link ?? "";
 
-    await sendNotification({
+    const delivery = await sendNotification({
       clientId: client.id,
       templateKey: "portal_password_reset",
       vars: { firstName: client.full_name.split(" ")[0] ?? "", resetLink },
     });
+
+    const delivered = delivery.results.some((r) => ["queued", "sent"].includes(r.status));
+    if (!delivered) {
+      throw new Error(delivery.results.find((r) => r.error)?.error ?? "Password reset could not be delivered");
+    }
 
     await logPortalEvent({
       clientId: client.id,
