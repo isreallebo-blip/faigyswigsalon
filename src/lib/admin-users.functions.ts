@@ -169,15 +169,9 @@ export const setUserStatus = createServerFn({ method: "POST" })
     if (data.user_id === context.userId) {
       throw new Error("You cannot disable your own account.");
     }
-    if (data.status === "disabled") {
-      await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-        ban_duration: "876000h", // ~100 years
-      });
-    } else {
-      await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-        ban_duration: "none",
-      });
-    }
+    // Staff disable must NOT ban the auth.users record — that same account
+    // may also be used for the client portal. We only flip the staff-side
+    // status; is_staff() and the staff-login gate honor it.
     await supabaseAdmin
       .from("profiles")
       .update({ status: data.status })
