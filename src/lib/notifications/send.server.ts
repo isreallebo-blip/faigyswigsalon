@@ -90,6 +90,30 @@ const SENDER_DOMAIN = "notify.faigyswigsalon.com";
 const FROM_DOMAIN = "faigyswigsalon.com";
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`;
 
+async function getOrCreateUnsubscribeToken(email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const { data: existing } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (existing?.token) return existing.token;
+
+  const token = crypto.randomUUID();
+  const { error } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .upsert({ email: normalized, token }, { onConflict: "email" });
+  if (error) throw error;
+
+  const { data: created } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!created?.token) throw new Error("Could not create unsubscribe token");
+  return created.token;
+}
+
 function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -114,6 +138,7 @@ async function sendEmail(
 ): Promise<{ id?: string; error?: string }> {
   try {
     const messageId = crypto.randomUUID();
+    const unsubscribeToken = await getOrCreateUnsubscribeToken(to);
     await supabaseAdmin.from("email_send_log").insert({
       message_id: messageId,
       template_name: label ?? "notification",
@@ -134,6 +159,7 @@ async function sendEmail(
         purpose: "transactional",
         reply_to: replyTo,
         label: label ?? "notification",
+        unsubscribe_token: unsubscribeToken,
         queued_at: new Date().toISOString(),
       },
     });
@@ -278,10 +304,10 @@ export async function sendNotification(opts: {
       // If conversation creation fails, still send the email without Reply-To.
     }
     const r = await sendEmail(client.email!, subject, html, replyTo, templateKey);
-    results.push({ channel: "email", status: r.error ? "failed" : "sent", error: r.error });
+    results.push({ channel: "email", status: r.error ? "failed" : "queued", error: r.error });
     await supabaseAdmin.from("notification_log").insert({
       client_id: clientId, template_key: templateKey, channel: "email",
-      recipient: client.email, subject, body: html, status: r.error ? "failed" : "sent",
+      recipient: client.email, subject, body: html, status: r.error ? "failed" : "queued",
       error_message: r.error ?? null, provider_message_id: r.id ?? null,
       idempotency_key: idempotencyKey ? `${idempotencyKey}:email` : null,
     });

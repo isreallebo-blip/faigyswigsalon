@@ -55,6 +55,30 @@ const SENDER_DOMAIN = "notify.faigyswigsalon.com";
 const FROM_DOMAIN = "faigyswigsalon.com";
 const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`;
 
+async function getOrCreateUnsubscribeToken(email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const { data: existing } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (existing?.token) return existing.token;
+
+  const token = crypto.randomUUID();
+  const { error } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .upsert({ email: normalized, token }, { onConflict: "email" });
+  if (error) throw error;
+
+  const { data: created } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!created?.token) throw new Error("Could not create unsubscribe token");
+  return created.token;
+}
+
 function htmlToText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -85,6 +109,7 @@ export async function sendEmailRaw(opts: {
 }): Promise<{ id?: string; error?: string }> {
   try {
     const messageId = crypto.randomUUID();
+    const unsubscribeToken = await getOrCreateUnsubscribeToken(opts.to);
 
     await supabaseAdmin.from("email_send_log").insert({
       message_id: messageId,
@@ -107,6 +132,7 @@ export async function sendEmailRaw(opts: {
         purpose: "transactional",
         reply_to: opts.replyTo,
         label: "inbox_reply",
+        unsubscribe_token: unsubscribeToken,
         queued_at: new Date().toISOString(),
       },
     });

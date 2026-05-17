@@ -224,11 +224,16 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
     const host = getRequestHost();
     const portalLink = `https://${host}/portal/signup`;
 
-    await sendNotification({
+    const delivery = await sendNotification({
       clientId: client.id,
       templateKey: "portal_invite",
       vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink },
     });
+
+    const delivered = delivery.results.some((r) => ["queued", "sent"].includes(r.status));
+    if (!delivered) {
+      throw new Error(delivery.results.find((r) => r.error)?.error ?? "Portal invite could not be delivered");
+    }
 
     await supabaseAdmin
       .from("clients")
@@ -281,11 +286,16 @@ export const sendPortalPasswordReset = createServerFn({ method: "POST" })
     if (linkErr) throw linkErr;
     const resetLink = linkData.properties?.action_link ?? "";
 
-    await sendNotification({
+    const delivery = await sendNotification({
       clientId: client.id,
       templateKey: "portal_password_reset",
       vars: { firstName: client.full_name.split(" ")[0] ?? "", resetLink },
     });
+
+    const delivered = delivery.results.some((r) => ["queued", "sent"].includes(r.status));
+    if (!delivered) {
+      throw new Error(delivery.results.find((r) => r.error)?.error ?? "Password reset could not be delivered");
+    }
 
     await logPortalEvent({
       clientId: client.id,
