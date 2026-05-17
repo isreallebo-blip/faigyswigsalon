@@ -2,39 +2,41 @@ import * as React from 'react'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
   Html,
   Preview,
+  Section,
   Text,
 } from '@react-email/components'
 
 interface MagicLinkEmailProps {
   siteName: string
-  confirmationUrl: string
+  token?: string
 }
 
 export const MagicLinkEmail = ({
   siteName,
-  confirmationUrl,
+  token,
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your login link for {siteName}</Preview>
+    <Preview>Your {siteName} verification code{token ? `: ${token}` : ''}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Your login link</Heading>
+        <Heading style={h1}>Your verification code</Heading>
         <Text style={text}>
-          Click the button below to log in to {siteName}. This link will expire
-          shortly.
+          Use the 6-digit code below to sign in to {siteName}. This code expires
+          in 10 minutes.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Log In
-        </Button>
+        {token ? (
+          <Section style={codeBox}>
+            <Text style={codeText}>{token}</Text>
+          </Section>
+        ) : null}
         <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
+          If you didn't request this code, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -57,12 +59,20 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
+const codeBox = {
+  background: '#faf6ef',
+  border: '1px solid #e8dcc4',
   borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
+  padding: '20px',
+  textAlign: 'center' as const,
+  margin: '0 0 25px',
+}
+const codeText = {
+  fontSize: '34px',
+  fontWeight: 'bold' as const,
+  letterSpacing: '8px',
+  color: '#2a2218',
+  margin: '0',
+  fontFamily: 'monospace',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
