@@ -278,10 +278,10 @@ export async function sendNotification(opts: {
       // If conversation creation fails, still send the email without Reply-To.
     }
     const r = await sendEmail(client.email!, subject, html, replyTo, templateKey);
-    results.push({ channel: "email", status: r.error ? "failed" : "sent", error: r.error });
+    results.push({ channel: "email", status: r.error ? "failed" : "queued", error: r.error });
     await supabaseAdmin.from("notification_log").insert({
       client_id: clientId, template_key: templateKey, channel: "email",
-      recipient: client.email, subject, body: html, status: r.error ? "failed" : "sent",
+      recipient: client.email, subject, body: html, status: r.error ? "failed" : "queued",
       error_message: r.error ?? null, provider_message_id: r.id ?? null,
       idempotency_key: idempotencyKey ? `${idempotencyKey}:email` : null,
     });
