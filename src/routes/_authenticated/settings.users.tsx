@@ -121,8 +121,15 @@ function UsersPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const resetLockoutMut = useMutation({
+    mutationFn: (user_id: string) => resetLockout({ data: { userId: user_id, subject: "staff" } }),
+    onSuccess: () => toast.success("Lockout reset"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   return (
     <div>
+      {verify.gate}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="font-display text-2xl">Users</h2>
