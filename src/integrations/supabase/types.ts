@@ -920,6 +920,81 @@ export type Database = {
           },
         ]
       }
+      pending_email_changes: {
+        Row: {
+          confirm_token: string
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          new_email: string
+          old_email: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Insert: {
+          confirm_token: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          new_email: string
+          old_email?: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Update: {
+          confirm_token?: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          new_email?: string
+          old_email?: string | null
+          subject_type?: Database["public"]["Enums"]["verification_subject"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pending_phone_changes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          new_phone: string
+          old_phone: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          new_phone: string
+          old_phone?: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          new_phone?: string
+          old_phone?: string | null
+          subject_type?: Database["public"]["Enums"]["verification_subject"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1186,6 +1261,102 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_challenges: {
+        Row: {
+          attempts: number
+          channel: Database["public"]["Enums"]["verification_channel"]
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          destination_masked: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          purpose: Database["public"]["Enums"]["verification_purpose"]
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          channel: Database["public"]["Enums"]["verification_channel"]
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          destination_masked: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          purpose?: Database["public"]["Enums"]["verification_purpose"]
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          channel?: Database["public"]["Enums"]["verification_channel"]
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          destination_masked?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          purpose?: Database["public"]["Enums"]["verification_purpose"]
+          subject_type?: Database["public"]["Enums"]["verification_subject"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      verification_lockouts: {
+        Row: {
+          created_at: string
+          id: string
+          locked_until: string
+          reason: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked_until: string
+          reason?: string | null
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked_until?: string
+          reason?: string | null
+          subject_type?: Database["public"]["Enums"]["verification_subject"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      verified_sessions: {
+        Row: {
+          expires_at: string
+          id: string
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          expires_at: string
+          id?: string
+          subject_type: Database["public"]["Enums"]["verification_subject"]
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          subject_type?: Database["public"]["Enums"]["verification_subject"]
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       wigs: {
         Row: {
           brand: string | null
@@ -1340,6 +1511,20 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _uid: string }; Returns: boolean }
+      is_user_locked: {
+        Args: {
+          _subject: Database["public"]["Enums"]["verification_subject"]
+          _uid: string
+        }
+        Returns: string
+      }
+      is_user_verified: {
+        Args: {
+          _subject: Database["public"]["Enums"]["verification_subject"]
+          _uid: string
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1388,6 +1573,9 @@ export type Database = {
       user_status: "active" | "invited" | "disabled"
       vendor_status: "active" | "inactive"
       vendor_type: "supplier" | "repair" | "both"
+      verification_channel: "email" | "sms"
+      verification_purpose: "reauth" | "email_change" | "phone_change"
+      verification_subject: "staff" | "client"
       wig_status: "available" | "reserved" | "sent_for_repair" | "sold"
       workflow_status: "open" | "completed" | "cancelled"
       workflow_type: "sale_cut" | "wash_set"
@@ -1549,6 +1737,9 @@ export const Constants = {
       user_status: ["active", "invited", "disabled"],
       vendor_status: ["active", "inactive"],
       vendor_type: ["supplier", "repair", "both"],
+      verification_channel: ["email", "sms"],
+      verification_purpose: ["reauth", "email_change", "phone_change"],
+      verification_subject: ["staff", "client"],
       wig_status: ["available", "reserved", "sent_for_repair", "sold"],
       workflow_status: ["open", "completed", "cancelled"],
       workflow_type: ["sale_cut", "wash_set"],
