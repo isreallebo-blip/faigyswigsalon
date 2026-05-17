@@ -294,6 +294,7 @@ function PaymentDialog({
 
   return (
     <DialogContent>
+      {verify.gate}
       <DialogHeader><DialogTitle className="font-display text-2xl">{payment ? "Edit payment" : "Record payment"}</DialogTitle></DialogHeader>
       <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="space-y-4">
         <div>
