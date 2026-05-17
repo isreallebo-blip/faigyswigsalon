@@ -3,6 +3,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { recordPortalLoginAttempt } from "@/lib/portal-admin.functions";
 
 export const Route = createFileRoute("/portal/login")({
   component: PortalLoginPage,
