@@ -41,6 +41,7 @@ import { Route as ApiPublicTwilioInboundRouteImport } from './routes/api/public/
 import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
 import { Route as ApiPublicResendInboundRouteImport } from './routes/api/public/resend-inbound'
 import { Route as ApiPublicResendEventsRouteImport } from './routes/api/public/resend-events'
+import { Route as ApiPublicConfirmEmailChangeRouteImport } from './routes/api/public/confirm-email-change'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
@@ -209,6 +210,12 @@ const ApiPublicResendEventsRoute = ApiPublicResendEventsRouteImport.update({
   path: '/api/public/resend-events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConfirmEmailChangeRoute =
+  ApiPublicConfirmEmailChangeRouteImport.update({
+    id: '/api/public/confirm-email-change',
+    path: '/api/public/confirm-email-change',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSettingsUsersRoute =
   AuthenticatedSettingsUsersRouteImport.update({
     id: '/users',
@@ -273,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -310,6 +318,7 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -351,6 +360,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
+    | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/users'
+    | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -469,6 +481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/users'
+    | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -486,6 +499,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicConfirmEmailChangeRoute: typeof ApiPublicConfirmEmailChangeRoute
   ApiPublicResendEventsRoute: typeof ApiPublicResendEventsRoute
   ApiPublicResendInboundRoute: typeof ApiPublicResendInboundRoute
   ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
@@ -722,6 +736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicResendEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/confirm-email-change': {
+      id: '/api/public/confirm-email-change'
+      path: '/api/public/confirm-email-change'
+      fullPath: '/api/public/confirm-email-change'
+      preLoaderRoute: typeof ApiPublicConfirmEmailChangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/users': {
       id: '/_authenticated/settings/users'
       path: '/users'
@@ -853,6 +874,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicConfirmEmailChangeRoute: ApiPublicConfirmEmailChangeRoute,
   ApiPublicResendEventsRoute: ApiPublicResendEventsRoute,
   ApiPublicResendInboundRoute: ApiPublicResendInboundRoute,
   ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
