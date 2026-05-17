@@ -227,7 +227,7 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_invite",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink },
     });
 
     await supabaseAdmin
@@ -284,13 +284,8 @@ export const sendPortalPasswordReset = createServerFn({ method: "POST" })
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_password_reset",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
-      // Inline the reset link into the template via metadata variables
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", resetLink },
     });
-    // Reset link not yet substituted via templates; send a direct fallback email when possible
-    // (Handled by template body containing [Reset Link]; we patch by sending raw replacement)
-    // For now we depend on the template — the link is included in the email via a follow-up.
-    void resetLink;
 
     await logPortalEvent({
       clientId: client.id,
@@ -408,10 +403,11 @@ export const unlockClientPortal = createServerFn({ method: "POST" })
       })
       .eq("id", client.id);
 
+    const portalLoginLink = `https://${getRequestHost()}/portal/login`;
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_unlocked",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink: portalLoginLink },
     });
 
     await logPortalEvent({
@@ -504,10 +500,11 @@ export const enableClientPortal = createServerFn({ method: "POST" })
       })
       .eq("id", client.id);
 
+    const portalLoginLink2 = `https://${getRequestHost()}/portal/login`;
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_unlocked",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink: portalLoginLink2 },
     });
 
     await logPortalEvent({
