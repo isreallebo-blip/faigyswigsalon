@@ -15,6 +15,7 @@ function PortalLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const recordAttempt = useServerFn(recordPortalLoginAttempt);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,14 @@ function PortalLoginPage() {
         email: email.trim(),
         password,
       });
-      if (error) throw error;
+      if (error) {
+        await recordAttempt({ data: { emailOrPhone: email.trim(), success: false } }).catch(() => {});
+        if (/locked|banned|disabled/i.test(error.message)) {
+          throw new Error("Your account has been temporarily locked. Please contact the salon.");
+        }
+        throw error;
+      }
+      await recordAttempt({ data: { emailOrPhone: email.trim(), success: true } }).catch(() => {});
       toast.success("Welcome back");
       navigate({ to: "/portal" });
     } catch (err) {
