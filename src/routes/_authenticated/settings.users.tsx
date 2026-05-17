@@ -6,7 +6,9 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Mail } from "lucide-react";
+import { MoreHorizontal, UserPlus, Mail, ShieldOff } from "lucide-react";
+import { useVerifiedAction } from "@/components/verification-gate";
+import { adminResetLockout } from "@/lib/verification.functions";
 
 import {
   inviteUser,
