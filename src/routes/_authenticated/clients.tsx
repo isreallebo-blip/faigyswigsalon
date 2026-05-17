@@ -613,6 +613,9 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             clientHasEmail={!!c.email}
           />
         </TabsContent>
+        <TabsContent value="portal" className="pt-4">
+          <PortalAccessTab clientId={clientId} />
+        </TabsContent>
       </ClientProfileTabs>
 
       <Dialog open={editing} onOpenChange={setEditing}>
