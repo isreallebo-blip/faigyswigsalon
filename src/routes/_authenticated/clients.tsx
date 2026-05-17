@@ -660,6 +660,7 @@ function ClientProfileTabs({
             </Badge>
           )}
         </TabsTrigger>
+        <TabsTrigger value="portal">Portal Access</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
