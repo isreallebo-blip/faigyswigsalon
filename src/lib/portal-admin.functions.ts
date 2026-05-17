@@ -218,17 +218,19 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
     const staff = await assertStaff(context.userId);
     const ip = await getActorIp();
     const client = await loadClient(data.clientId);
-    if (!client.email && !client.phone)
-      throw new Error("Client has no email or phone on file");
+    if (!client.email) throw new Error("Client must have an email address for a portal invite");
 
     const host = getRequestHost();
-    const portalLink = `https://${host}/portal/signup`;
-
-    await sendNotification({
-      clientId: client.id,
-      templateKey: "portal_invite",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink },
+    const redirectTo = `https://${host}/reset-password`;
+    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(client.email, {
+      data: {
+        portal: true,
+        full_name: client.full_name,
+        client_id: client.id,
+      },
+      redirectTo,
     });
+    if (inviteError) throw inviteError;
 
     await supabaseAdmin
       .from("clients")
@@ -246,7 +248,7 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
       eventType: "invite_sent",
       summary: `Portal invite sent by ${staff.full_name ?? staff.email}`,
       ip,
-      metadata: { portalLink },
+      metadata: { delivery: "auth_invite" },
     });
     await logStaffAudit({
       userId: context.userId,
