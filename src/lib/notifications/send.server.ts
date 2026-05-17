@@ -85,26 +85,69 @@ async function sendSms(to: string, body: string): Promise<{ id?: string; error?:
   }
 }
 
+const SITE_NAME = "Faigy's Wig Salon";
+const SENDER_DOMAIN = "notify.faigyswigsalon.com";
+const FROM_DOMAIN = "faigyswigsalon.com";
+const FROM_ADDRESS = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`;
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function sendEmail(
   to: string,
   subject: string,
   html: string,
   replyTo?: string,
+  label?: string,
 ): Promise<{ id?: string; error?: string }> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!key || !from) return { error: "Resend not configured" };
   try {
-    const body: Record<string, unknown> = { from, to: [to], subject, html };
-    if (replyTo) body.reply_to = replyTo;
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    const messageId = crypto.randomUUID();
+    await supabaseAdmin.from("email_send_log").insert({
+      message_id: messageId,
+      template_name: label ?? "notification",
+      recipient_email: to,
+      status: "pending",
     });
-    const json = await res.json() as { id?: string; message?: string };
-    if (!res.ok) return { error: json.message ?? `Resend ${res.status}` };
-    return { id: json.id };
+    const { error } = await supabaseAdmin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: messageId,
+        idempotency_key: messageId,
+        to,
+        from: FROM_ADDRESS,
+        sender_domain: SENDER_DOMAIN,
+        subject,
+        html,
+        text: htmlToText(html),
+        purpose: "transactional",
+        reply_to: replyTo,
+        label: label ?? "notification",
+        queued_at: new Date().toISOString(),
+      },
+    });
+    if (error) {
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: messageId,
+        template_name: label ?? "notification",
+        recipient_email: to,
+        status: "failed",
+        error_message: error.message,
+      });
+      return { error: error.message };
+    }
+    return { id: messageId };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };
   }
@@ -234,7 +277,7 @@ export async function sendNotification(opts: {
     } catch {
       // If conversation creation fails, still send the email without Reply-To.
     }
-    const r = await sendEmail(client.email!, subject, html, replyTo);
+    const r = await sendEmail(client.email!, subject, html, replyTo, templateKey);
     results.push({ channel: "email", status: r.error ? "failed" : "sent", error: r.error });
     await supabaseAdmin.from("notification_log").insert({
       client_id: clientId, template_key: templateKey, channel: "email",
