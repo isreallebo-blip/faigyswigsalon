@@ -35,11 +35,27 @@ export const getMyAccess = createServerFn({ method: "GET" })
 export const recordLastLogin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Verify the signed-in user is an active staff/admin. If not, the staff
+    // login screen will sign them out — their client portal account (if any)
+    // is unaffected.
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("status")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    if (!profile) {
+      return { ok: false as const, reason: "not_staff" as const };
+    }
+    if (profile.status === "disabled") {
+      return { ok: false as const, reason: "disabled" as const };
+    }
+
     await supabaseAdmin
       .from("profiles")
       .update({ last_login_at: new Date().toISOString() })
       .eq("id", context.userId);
-    return { ok: true };
+    return { ok: true as const };
   });
 
 export const listUsers = createServerFn({ method: "GET" })
@@ -77,8 +93,9 @@ export const listUsers = createServerFn({ method: "GET" })
     return (profiles ?? []).map((p) => {
       const a = authMap.get(p.id);
       let status: "active" | "invited" | "disabled" = (p.status as "active" | "invited" | "disabled") ?? "active";
-      if (a?.banned_until && new Date(a.banned_until) > new Date()) status = "disabled";
-      else if (!a?.confirmed_at) status = "invited";
+      // profiles.status is authoritative for disabled. Only use auth state to
+      // promote "active" → "invited" when email hasn't been confirmed yet.
+      if (status !== "disabled" && !a?.confirmed_at) status = "invited";
       return {
         id: p.id,
         email: p.email,
@@ -169,15 +186,9 @@ export const setUserStatus = createServerFn({ method: "POST" })
     if (data.user_id === context.userId) {
       throw new Error("You cannot disable your own account.");
     }
-    if (data.status === "disabled") {
-      await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-        ban_duration: "876000h", // ~100 years
-      });
-    } else {
-      await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-        ban_duration: "none",
-      });
-    }
+    // Staff disable must NOT ban the auth.users record — that same account
+    // may also be used for the client portal. We only flip the staff-side
+    // status; is_staff() and the staff-login gate honor it.
     await supabaseAdmin
       .from("profiles")
       .update({ status: data.status })
