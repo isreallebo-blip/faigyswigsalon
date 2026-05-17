@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useServerFn } from "@tanstack/react-start";
 import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
+import { PortalAccessTab, PortalStatusDot } from "@/components/portal-access";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
