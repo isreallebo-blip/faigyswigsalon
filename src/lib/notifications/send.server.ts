@@ -36,6 +36,8 @@ function applyVars(template: string, v: NotifVars): string {
     "[New Date]": v.newDate ?? v.date ?? "",
     "[New Day]": v.newDay ?? v.day ?? "",
     "[New Time]": v.newTime ?? v.time ?? "",
+    "[Portal Link]": v.portalLink ?? "",
+    "[Reset Link]": v.resetLink ?? "",
   };
   let out = template;
   for (const [k, val] of Object.entries(map)) {
