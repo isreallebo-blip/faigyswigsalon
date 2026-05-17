@@ -252,13 +252,13 @@ function UsersPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             disabled={isMe || u.role === "admin"}
-                            onClick={() => roleMut.mutate({ user_id: u.id, role: "admin" })}
+                            onClick={() => verify.run(() => roleMut.mutate({ user_id: u.id, role: "admin" }), { reason: `Verify to change ${u.email}'s role.` })}
                           >
                             Make admin
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled={isMe || u.role === "staff"}
-                            onClick={() => roleMut.mutate({ user_id: u.id, role: "staff" })}
+                            onClick={() => verify.run(() => roleMut.mutate({ user_id: u.id, role: "staff" }), { reason: `Verify to change ${u.email}'s role.` })}
                           >
                             Make staff
                           </DropdownMenuItem>
@@ -269,17 +269,25 @@ function UsersPage() {
                               Resend invitation
                             </DropdownMenuItem>
                           )}
+                          {me?.isAdmin && !isMe && (
+                            <DropdownMenuItem
+                              onClick={() => verify.run(() => resetLockoutMut.mutate(u.id), { reason: `Verify to reset ${u.email}'s lockout.` })}
+                            >
+                              <ShieldOff className="h-4 w-4 mr-2" />
+                              Reset verification lockout
+                            </DropdownMenuItem>
+                          )}
                           {u.status !== "disabled" ? (
                             <DropdownMenuItem
                               disabled={isMe}
-                              onClick={() => statusMut.mutate({ user_id: u.id, status: "disabled" })}
+                              onClick={() => verify.run(() => statusMut.mutate({ user_id: u.id, status: "disabled" }), { reason: `Verify to disable ${u.email}.` })}
                               className="text-destructive"
                             >
                               Disable user
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
-                              onClick={() => statusMut.mutate({ user_id: u.id, status: "active" })}
+                              onClick={() => verify.run(() => statusMut.mutate({ user_id: u.id, status: "active" }), { reason: `Verify to re-enable ${u.email}.` })}
                             >
                               Re-enable user
                             </DropdownMenuItem>
