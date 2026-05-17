@@ -403,10 +403,11 @@ export const unlockClientPortal = createServerFn({ method: "POST" })
       })
       .eq("id", client.id);
 
+    const portalLoginLink = `https://${getRequestHost()}/portal/login`;
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_unlocked",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink: portalLoginLink },
     });
 
     await logPortalEvent({
