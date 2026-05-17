@@ -97,6 +97,7 @@ export async function sendEmailRaw(opts: {
       queue_name: "transactional_emails",
       payload: {
         message_id: messageId,
+        idempotency_key: messageId,
         to: opts.to,
         from: FROM_ADDRESS,
         sender_domain: SENDER_DOMAIN,
