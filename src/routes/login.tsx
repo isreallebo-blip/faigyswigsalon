@@ -49,7 +49,20 @@ function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword(values);
       if (error) throw error;
-      recordLastLogin().catch(() => {});
+
+      // Gate staff CRM access on profile status — independent of the client
+      // portal account that may share this email.
+      const result = await recordLastLogin().catch(() => ({ ok: true as const }));
+      if ("ok" in result && result.ok === false) {
+        await supabase.auth.signOut();
+        if (result.reason === "disabled") {
+          toast.error("This staff account has been disabled. Contact an admin.");
+        } else {
+          toast.error("This email isn't a staff account. Use the Client Portal to log in.");
+        }
+        return;
+      }
+
       toast.success("Welcome back");
       navigate({ to: search.redirect });
     } catch (e) {
