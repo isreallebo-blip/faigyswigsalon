@@ -77,8 +77,9 @@ export const listUsers = createServerFn({ method: "GET" })
     return (profiles ?? []).map((p) => {
       const a = authMap.get(p.id);
       let status: "active" | "invited" | "disabled" = (p.status as "active" | "invited" | "disabled") ?? "active";
-      if (a?.banned_until && new Date(a.banned_until) > new Date()) status = "disabled";
-      else if (!a?.confirmed_at) status = "invited";
+      // profiles.status is authoritative for disabled. Only use auth state to
+      // promote "active" → "invited" when email hasn't been confirmed yet.
+      if (status !== "disabled" && !a?.confirmed_at) status = "invited";
       return {
         id: p.id,
         email: p.email,
