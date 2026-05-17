@@ -1,118 +1,77 @@
-# Reauthentication & Verification for Sensitive Actions
+## Client Portal Access Management
 
-A 6-digit code (email or SMS) gates sensitive actions for both staff and client portal users. Successful verification unlocks sensitive actions for 15 minutes. 3 wrong attempts → 30-minute lockout + alert.
+A large feature. I'll build it in clear layers: schema → server functions → UI on client profile (card + tab) → admin settings page → list indicator.
 
-## 1. Database (one migration)
+### 1. Database migration
 
-**`verification_challenges`**
-- `id`, `user_id` (staff = auth.users.id, client = clients.id), `subject_type` ('staff'|'client')
-- `purpose` ('reauth' | 'email_change' | 'phone_change')
-- `channel` ('email'|'sms'), `destination_masked`
-- `code_hash` (sha256), `expires_at` (now + 10min), `consumed_at`
-- `attempts` (int, default 0), `created_at`, `ip_address`
+Add fields to `clients` for portal lifecycle state:
+- `portal_status` enum: `not_signed_up | active | locked | disabled | pending_verification`
+- `portal_locked_at`, `portal_locked_by`, `portal_lock_reason` (text)
+- `portal_disabled_at`, `portal_disabled_by`
+- `portal_invite_sent_at`, `portal_invite_sent_by`
+- `portal_failed_login_count` int default 0
+- `portal_last_failed_login_at`
+- `portal_signup_method` text (`email`/`phone`)
+- `portal_signup_at`, `portal_last_login_at`
 
-**`verification_lockouts`**
-- `id`, `user_id`, `subject_type`, `locked_until`, `reason`, `created_at`
-- Unique partial index on active (locked_until > now()) rows
+New table `portal_activity_log` (append-only):
+- `client_id`, `actor` (`client`/`staff`/`system`), `actor_user_id`, `actor_name`, `event_type`, `summary`, `ip_address`, `metadata jsonb`, `created_at`
+- RLS: staff read all; client reads own (via `current_client_id()`); insert via service role.
 
-**`verified_sessions`** (15-min sliding unlock window)
-- `id`, `user_id`, `subject_type`, `verified_at`, `expires_at` (verified_at + 15min)
+Trigger to derive `portal_status` is overkill — manage in server fns.
 
-**`pending_email_changes`**
-- `id`, `user_id`, `new_email`, `confirm_token`, `expires_at`, `confirmed_at`
+### 2. Server functions — `src/lib/portal-admin.functions.ts`
 
-**`pending_phone_changes`**
-- `id`, `user_id`, `subject_type`, `new_phone`, `code_hash`, `expires_at`, `confirmed_at`, `attempts`
+All `requireSupabaseAuth` + staff check:
+- `getClientPortalAccess(clientId)` → status, signup date/method, last login, masked email/phone, active session count, recent activity preview
+- `sendPortalInvite(clientId)` — sends SMS/email via existing notification pipeline, stamps `portal_invite_sent_at`, logs
+- `sendPortalPasswordReset(clientId)` — uses `supabaseAdmin.auth.admin.generateLink({ type: 'recovery' })` and queues email
+- `lockClientPortal(clientId, reason)` — sets `banned_until` (far future) via admin API + status=locked; logs; notifies client
+- `unlockClientPortal(clientId)` — clears ban; resets failed count; notifies client
+- `disableClientPortal(clientId)` — bans permanently, status=disabled, notifies
+- `enableClientPortal(clientId)` — restores
+- `signOutAllPortalDevices(clientId)` — `supabaseAdmin.auth.admin.signOut(userId, 'global')`, notifies
+- `getClientPortalActivity(clientId)` — full log
+- `listPortalAccounts({ status, search })` — admin list with stats
+- `bulkPortalAction({ clientIds, action, reason? })` — invite/lock/disable
+- `recordPortalLoginAttempt({ clientId, success, ip })` — called from portal login flow; increments failed count; auto-locks at 5
 
-RLS: users can read/insert their own rows; staff-side scoped via `auth.uid()`, client-side via `current_client_id()`.
+Hook into existing portal login (`src/routes/portal.login.tsx`) to call `recordPortalLoginAttempt` and block if locked/disabled with the specified user-facing messages.
 
-Helper SQL functions: `is_user_locked(uid, subject)`, `is_verified(uid, subject)`, `consume_verification(...)`.
+### 3. UI on client profile (`src/routes/_authenticated/clients.tsx`)
 
-Admin "reset lockout" → server function deletes active lockouts, logs to `audit_logs`.
+The clients page is currently a list; client details are likely shown in a drawer/modal. I'll:
+- Add a **Portal Access** card component (`src/components/clients/PortalAccessCard.tsx`) — status badge, signup info, last login, masked contacts, action buttons (conditional on status)
+- Add a **Portal Access** tab (`src/components/clients/PortalAccessTab.tsx`) — full activity log table
+- Lock/disable use confirmation dialogs with reason dropdown
 
-## 2. Server functions (new `src/lib/verification.functions.ts`)
+### 4. Client list indicator
 
-- `requestVerificationCode({ purpose, channel? })` — picks channel based on what's on file, generates 6-digit code, hashes, stores, sends via existing `notifications/send.server` (email) or Twilio inbound module's send helper (SMS).
-- `verifyCode({ challenge_id, code })` — checks expiry/attempts, increments on failure, on 3rd failure inserts lockout + fires alert email "Someone made multiple failed verification attempts".
-- `getVerificationStatus()` — returns `{ verified_until, locked_until }`.
-- `requestEmailChange({ new_email })` — requires `is_verified`; creates pending row, sends confirm link to new email, notice to old email.
-- `confirmEmailChange({ token })` — public route handler `/api/public/confirm-email-change`.
-- `requestPhoneChange({ new_phone })` — requires verified; sends SMS code to new number.
-- `confirmPhoneChange({ code })` — confirms phone, updates profile/client.
-- `changePasswordVerified({ new_password })` — requires verified; calls Supabase admin updateUserById; signs out other sessions (via `auth.admin.signOut(uid, 'others')`); sends confirmation.
-- `adminResetLockout({ user_id })` — admin-only, audit-logged.
+Add a small colored dot next to client name in the list (green=active, grey=none, red=locked/disabled). Source from `clients.portal_status`.
 
-All log to `audit_logs` with `action = 'verified_action'` or `'verification_failed'` + IP from request headers.
+### 5. Settings → Client Portal page
 
-## 3. UI
+New route `src/routes/_authenticated/settings.client-portal.tsx`:
+- Admin-only (use `is_admin`)
+- Table: name / CLT ID / status / signup date / last login / signup method / actions
+- Filters: All / Active / Locked / Disabled / Pending / Never logged in
+- Bulk actions (invite, lock, disable)
+- Search by name/email/phone/CLT ID
+- CSV export button
+- Add link in `settings.index.tsx`
 
-**Shared component** `src/components/verification-gate.tsx` — Dialog with:
-- Channel picker (if both email + phone)
-- "Send code" → 6 OTP boxes (uses existing `components/ui/input-otp.tsx`)
-- Countdown timer, resend after 60s
-- Inline error "Incorrect code, X attempts remaining"
-- Lockout screen with "try again in 30 minutes"
-- On success → calls `onVerified()` and shows the wrapped form
+### 6. Audit logging
 
-**Hook** `useVerifiedAction()` — checks `getVerificationStatus`; if verified, runs action directly; otherwise opens gate.
+Every action writes to both `portal_activity_log` (client-facing portal log) and existing `audit_logs` (global staff audit) via existing `logAudit` helper.
 
-**Wiring points:**
+### Technical details
+- Status is derived in `getClientPortalAccess`: no `auth_user_id` → `not_signed_up`; banned_until>now → `locked` or `disabled` (based on our `portal_status` column); email/phone unconfirmed → `pending_verification`; else `active`.
+- Use `supabaseAdmin.auth.admin.updateUserById` for ban/unban (`ban_duration: '876000h'` for lock, `'none'` for unlock).
+- Notifications reuse the existing template + queue system (insert into `notification_log` with `template_key='portal_*'`).
+- Masking helpers in `src/lib/portal-admin.functions.ts` (e.g., `j***@gmail.com`, `+1 (***) ***-1234`).
 
-Staff (`src/routes/_authenticated/profile.tsx`):
-- Replace current-password fields with verification gate for: change password, change email, change phone (add phone change section).
-- Password form: new password + confirm + strength indicator + requirements checklist.
+### Out of scope
+- No new email templates designed — uses inline plain-text bodies via existing SMS/email send helpers
+- "Sensitive actions in portal" (viewed payments, changed email) already partially logged via existing `logPortalActivity` in `portal.functions.ts` — I'll route those into `portal_activity_log` too
 
-Staff sensitive actions:
-- Payments page: gate "View full details" + CSV export buttons.
-- Audit log route: gate the page itself.
-- Settings → Users: gate the page; gate role change, enable/disable, "Reset verification lockout" button (admin-only).
-- Repairs/Inventory/Clients CSV export buttons (if present).
-- Payments: gate "Void" button.
-
-Client portal (`src/routes/portal.profile.tsx`):
-- Gate change password, email, phone, view full payment history (`portal.payments.tsx`).
-
-**Pending change banner** — small component on profile pages showing "Email change pending — check your new inbox".
-
-## 4. Audit log
-
-- Every code request, success, failure, lockout, admin reset → `audit_logs` row.
-- Sensitive actions completed in verified window → existing audit insert + `metadata.verified = true`. Audit log UI renders a small "Verified" badge when `metadata.verified`.
-
-## 5. Notifications
-
-- Use existing `sendEmail` (Resend via notify.faigyswigsalon.com) and existing Twilio SMS helper.
-- New templates inline in `verification.functions.ts`:
-  - Code email/SMS ("Your verification code is 123456")
-  - Failed-attempts alert email
-  - Action-completed confirmation (password/email/phone changed)
-  - Email-change notice to old address
-  - Phone-change notice to old number
-
-## 6. Out of scope / kept simple
-
-- Reauth lockout is per-user, not per-action.
-- Code length fixed 6 digits, numeric.
-- IP address read from `cf-connecting-ip` / `x-forwarded-for` headers in server fns.
-- No backup codes / TOTP — only email/SMS OTP as spec'd.
-
-## Files touched
-
-New:
-- `supabase/migrations/<ts>_verification.sql`
-- `src/lib/verification.functions.ts`
-- `src/lib/verification.server.ts` (helpers: hash, generate, send)
-- `src/components/verification-gate.tsx`
-- `src/lib/use-verified-action.ts`
-- `src/components/pending-change-banner.tsx`
-- `src/routes/api/public/confirm-email-change.ts`
-
-Edited:
-- `src/routes/_authenticated/profile.tsx` (full rewrite of email/password sections; add phone change)
-- `src/routes/_authenticated/settings.users.tsx` (gate + admin reset lockout button)
-- `src/routes/_authenticated/settings.audit-log.tsx` (gate + verified badge rendering)
-- `src/routes/_authenticated/payments.tsx` (gate void / full view / CSV)
-- `src/routes/portal.profile.tsx` (gate + phone change UI)
-- `src/routes/portal.payments.tsx` (gate full history)
-
-Approve to proceed?
+Ready to build this. Approve to proceed.

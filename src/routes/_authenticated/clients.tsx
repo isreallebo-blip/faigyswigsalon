@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useServerFn } from "@tanstack/react-start";
 import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
+import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components/portal-access";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
@@ -183,7 +184,10 @@ function ClientsPage() {
                 <CardContent className="flex items-center gap-4 p-4">
                   <ClientAvatar client={c} size={48} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{c.full_name}</div>
+                    <div className="flex items-center gap-2 truncate font-medium">
+                      <PortalStatusDot status={(c.portal_status ?? "not_signed_up") as "not_signed_up" | "active" | "locked" | "disabled" | "pending_verification"} />
+                      <span className="truncate">{c.full_name}</span>
+                    </div>
                     <div className="font-mono text-[10px] text-muted-foreground">{c.display_id}</div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
                       {c.phone && (
@@ -555,6 +559,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
 
       <ClientProfileTabs clientId={clientId} client={c}>
         <TabsContent value="profile" className="space-y-4 pt-4">
+          <PortalAccessCard clientId={clientId} />
           <Card>
             <CardContent className="p-5">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Measurements</div>
@@ -609,6 +614,9 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             clientHasEmail={!!c.email}
           />
         </TabsContent>
+        <TabsContent value="portal" className="pt-4">
+          <PortalAccessTab clientId={clientId} />
+        </TabsContent>
       </ClientProfileTabs>
 
       <Dialog open={editing} onOpenChange={setEditing}>
@@ -653,6 +661,7 @@ function ClientProfileTabs({
             </Badge>
           )}
         </TabsTrigger>
+        <TabsTrigger value="portal">Portal Access</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>

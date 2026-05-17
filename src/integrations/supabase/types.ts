@@ -378,6 +378,20 @@ export type Database = {
           outstanding_balance_reminded_at: string | null
           phone: string | null
           photo_url: string | null
+          portal_disabled_at: string | null
+          portal_disabled_by: string | null
+          portal_failed_login_count: number
+          portal_invite_sent_at: string | null
+          portal_invite_sent_by: string | null
+          portal_last_failed_login_at: string | null
+          portal_last_login_at: string | null
+          portal_lock_auto: boolean
+          portal_lock_reason: string | null
+          portal_locked_at: string | null
+          portal_locked_by: string | null
+          portal_signup_at: string | null
+          portal_signup_method: string | null
+          portal_status: Database["public"]["Enums"]["portal_account_status"]
           preferences: string | null
           self_registered: boolean
           self_registered_acknowledged: boolean
@@ -398,6 +412,20 @@ export type Database = {
           outstanding_balance_reminded_at?: string | null
           phone?: string | null
           photo_url?: string | null
+          portal_disabled_at?: string | null
+          portal_disabled_by?: string | null
+          portal_failed_login_count?: number
+          portal_invite_sent_at?: string | null
+          portal_invite_sent_by?: string | null
+          portal_last_failed_login_at?: string | null
+          portal_last_login_at?: string | null
+          portal_lock_auto?: boolean
+          portal_lock_reason?: string | null
+          portal_locked_at?: string | null
+          portal_locked_by?: string | null
+          portal_signup_at?: string | null
+          portal_signup_method?: string | null
+          portal_status?: Database["public"]["Enums"]["portal_account_status"]
           preferences?: string | null
           self_registered?: boolean
           self_registered_acknowledged?: boolean
@@ -418,6 +446,20 @@ export type Database = {
           outstanding_balance_reminded_at?: string | null
           phone?: string | null
           photo_url?: string | null
+          portal_disabled_at?: string | null
+          portal_disabled_by?: string | null
+          portal_failed_login_count?: number
+          portal_invite_sent_at?: string | null
+          portal_invite_sent_by?: string | null
+          portal_last_failed_login_at?: string | null
+          portal_last_login_at?: string | null
+          portal_lock_auto?: boolean
+          portal_lock_reason?: string | null
+          portal_locked_at?: string | null
+          portal_locked_by?: string | null
+          portal_signup_at?: string | null
+          portal_signup_method?: string | null
+          portal_status?: Database["public"]["Enums"]["portal_account_status"]
           preferences?: string | null
           self_registered?: boolean
           self_registered_acknowledged?: boolean
@@ -995,6 +1037,48 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_activity_log: {
+        Row: {
+          actor: string
+          actor_name: string | null
+          actor_user_id: string | null
+          client_id: string
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json
+          summary: string
+          user_agent: string | null
+        }
+        Insert: {
+          actor: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          client_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          summary: string
+          user_agent?: string | null
+        }
+        Update: {
+          actor?: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          client_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          summary?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1568,6 +1652,12 @@ export type Database = {
       message_direction: "inbound" | "outbound"
       payment_category: "wig_sale" | "cut" | "wash_set" | "repair" | "other"
       payment_method: "cash" | "check" | "credit_card" | "zelle" | "other"
+      portal_account_status:
+        | "not_signed_up"
+        | "active"
+        | "locked"
+        | "disabled"
+        | "pending_verification"
       repair_status: "sent_to_vendor" | "in_progress" | "returned" | "issue"
       step_status: "pending" | "in_progress" | "completed" | "skipped"
       user_status: "active" | "invited" | "disabled"
@@ -1732,6 +1822,13 @@ export const Constants = {
       message_direction: ["inbound", "outbound"],
       payment_category: ["wig_sale", "cut", "wash_set", "repair", "other"],
       payment_method: ["cash", "check", "credit_card", "zelle", "other"],
+      portal_account_status: [
+        "not_signed_up",
+        "active",
+        "locked",
+        "disabled",
+        "pending_verification",
+      ],
       repair_status: ["sent_to_vendor", "in_progress", "returned", "issue"],
       step_status: ["pending", "in_progress", "completed", "skipped"],
       user_status: ["active", "invited", "disabled"],
