@@ -201,6 +201,7 @@ function PaymentDialog({
   });
 
   const [voidReason, setVoidReason] = useState("");
+  const verify = useVerifiedAction();
 
   const save = useMutation({
     mutationFn: async (v: z.infer<typeof paymentSchema>) => {
