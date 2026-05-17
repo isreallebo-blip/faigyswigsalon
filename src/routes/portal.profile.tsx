@@ -4,6 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getPortalMe, updatePortalProfile } from "@/lib/portal.functions";
+import {
+  requestEmailChange,
+  requestPhoneChange,
+  confirmPhoneChange,
+  getPendingEmailChange,
+} from "@/lib/verification.functions";
+import { useVerifiedAction } from "@/components/verification-gate";
 import { Card } from "@/routes/portal.index";
 
 export const Route = createFileRoute("/portal/profile")({
