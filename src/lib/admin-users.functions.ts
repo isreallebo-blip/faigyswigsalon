@@ -35,11 +35,27 @@ export const getMyAccess = createServerFn({ method: "GET" })
 export const recordLastLogin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Verify the signed-in user is an active staff/admin. If not, the staff
+    // login screen will sign them out — their client portal account (if any)
+    // is unaffected.
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("status")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    if (!profile) {
+      return { ok: false as const, reason: "not_staff" as const };
+    }
+    if (profile.status === "disabled") {
+      return { ok: false as const, reason: "disabled" as const };
+    }
+
     await supabaseAdmin
       .from("profiles")
       .update({ last_login_at: new Date().toISOString() })
       .eq("id", context.userId);
-    return { ok: true };
+    return { ok: true as const };
   });
 
 export const listUsers = createServerFn({ method: "GET" })
