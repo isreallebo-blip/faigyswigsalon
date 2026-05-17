@@ -4,6 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getPortalMe, updatePortalProfile } from "@/lib/portal.functions";
+import {
+  requestEmailChange,
+  requestPhoneChange,
+  confirmPhoneChange,
+  getPendingEmailChange,
+} from "@/lib/verification.functions";
+import { useVerifiedAction } from "@/components/verification-gate";
 import { Card } from "@/routes/portal.index";
 
 export const Route = createFileRoute("/portal/profile")({
@@ -13,8 +20,14 @@ export const Route = createFileRoute("/portal/profile")({
 function ProfilePage() {
   const meFn = useServerFn(getPortalMe);
   const updateFn = useServerFn(updatePortalProfile);
+  const reqEmailFn = useServerFn(requestEmailChange);
+  const reqPhoneFn = useServerFn(requestPhoneChange);
+  const confirmPhoneFn = useServerFn(confirmPhoneChange);
+  const pendingEmailFn = useServerFn(getPendingEmailChange);
   const qc = useQueryClient();
+  const verify = useVerifiedAction();
   const q = useQuery({ queryKey: ["portal-me"], queryFn: () => meFn() });
+  const pendingEmailQ = useQuery({ queryKey: ["portal-pending-email"], queryFn: () => pendingEmailFn() });
 
   const [form, setForm] = useState({
     full_name: "",
@@ -24,6 +37,8 @@ function ProfilePage() {
     sms_opt_in: true,
     email_opt_in: true,
   });
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
 
   useEffect(() => {
     if (q.data?.client) {
@@ -38,8 +53,14 @@ function ProfilePage() {
     }
   }, [q.data]);
 
+  const currentEmail = q.data?.client?.email ?? "";
+  const currentPhone = q.data?.client?.phone ?? "";
+  const emailChanged = form.email.trim() && form.email.trim().toLowerCase() !== currentEmail.toLowerCase();
+  const phoneChanged = form.phone.trim() && form.phone.trim() !== currentPhone;
+
+  // Save only non-sensitive fields directly
   const m = useMutation({
-    mutationFn: () => updateFn({ data: form }),
+    mutationFn: () => updateFn({ data: { ...form, email: currentEmail, phone: currentPhone } }),
     onSuccess: () => {
       toast.success("Profile updated");
       qc.invalidateQueries({ queryKey: ["portal-me"] });
@@ -47,9 +68,59 @@ function ProfilePage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not update"),
   });
 
+  const emailMut = useMutation({
+    mutationFn: () => reqEmailFn({ data: { newEmail: form.email.trim() } }),
+    onSuccess: () => {
+      toast.success("Confirmation email sent to your new address");
+      qc.invalidateQueries({ queryKey: ["portal-pending-email"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not request"),
+  });
+
+  const phoneMut = useMutation({
+    mutationFn: () => reqPhoneFn({ data: { newPhone: form.phone.trim() } }),
+    onSuccess: () => {
+      toast.success("Code sent to new phone");
+      setPhoneCodeSent(true);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not request"),
+  });
+
+  const phoneConfirmMut = useMutation({
+    mutationFn: () => confirmPhoneFn({ data: { code: phoneCode } }),
+    onSuccess: () => {
+      toast.success("Phone number updated");
+      setPhoneCode(""); setPhoneCodeSent(false);
+      qc.invalidateQueries({ queryKey: ["portal-me"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Invalid code"),
+  });
+
+  const handleSave = () => {
+    if (emailChanged) {
+      verify.run(() => emailMut.mutate(), { reason: "Verify your identity to change your email." });
+      return;
+    }
+    if (phoneChanged) {
+      verify.run(() => phoneMut.mutate(), { reason: "Verify your identity to change your phone." });
+      return;
+    }
+    m.mutate();
+  };
+
   return (
     <div className="space-y-6">
+      {verify.gate}
       <h1 className="font-display text-3xl text-[oklch(0.22_0.02_60)]">My Profile</h1>
+
+      {pendingEmailQ.data && (
+        <Card>
+          <p className="text-xs uppercase tracking-wider text-[oklch(0.55_0.13_75)]">Email change pending</p>
+          <p className="mt-1 text-sm text-[oklch(0.30_0.02_60)]">
+            We sent a confirmation link to <strong>{pendingEmailQ.data.newEmail}</strong>. Click it to finish the change.
+          </p>
+        </Card>
+      )}
 
       <Card>
         <p className="text-xs uppercase tracking-wider text-[oklch(0.55_0.13_75)]">Client ID</p>
@@ -80,14 +151,33 @@ function ProfilePage() {
             value={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })}
           />
+          {phoneCodeSent && (
+            <div className="rounded-lg border border-[oklch(0.88_0.04_80)] p-3 space-y-2">
+              <p className="text-xs text-[oklch(0.45_0.02_60)]">Enter the 6-digit code sent to your new phone:</p>
+              <input
+                value={phoneCode}
+                onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="w-full rounded-lg border border-[oklch(0.88_0.04_80)] px-3 py-2 text-center tracking-widest"
+                placeholder="000000"
+              />
+              <button
+                onClick={() => phoneConfirmMut.mutate()}
+                disabled={phoneCode.length !== 6 || phoneConfirmMut.isPending}
+                className="w-full rounded-lg py-2 text-sm"
+                style={{ background: "oklch(0.55 0.13 75)", color: "white", opacity: phoneCode.length !== 6 ? 0.5 : 1 }}
+              >
+                Confirm new phone
+              </button>
+            </div>
+          )}
           <Field
             label="Photo URL"
             value={form.photo_url}
             onChange={(v) => setForm({ ...form, photo_url: v })}
           />
           <button
-            onClick={() => m.mutate()}
-            disabled={m.isPending}
+            onClick={handleSave}
+            disabled={m.isPending || emailMut.isPending || phoneMut.isPending}
             className="w-full rounded-lg py-3 font-medium tracking-wide"
             style={{
               background: "oklch(0.25 0.02 60)",
@@ -95,7 +185,7 @@ function ProfilePage() {
               opacity: m.isPending ? 0.6 : 1,
             }}
           >
-            {m.isPending ? "Saving…" : "Save changes"}
+            {emailChanged ? "Verify & change email" : phoneChanged ? "Verify & change phone" : (m.isPending ? "Saving…" : "Save changes")}
           </button>
         </div>
       </Card>

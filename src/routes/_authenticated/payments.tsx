@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientSelect } from "@/components/client-select";
+import { useVerifiedAction } from "@/components/verification-gate";
 
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type BankAccount = Database["public"]["Tables"]["bank_accounts"]["Row"];
@@ -200,6 +201,7 @@ function PaymentDialog({
   });
 
   const [voidReason, setVoidReason] = useState("");
+  const verify = useVerifiedAction();
 
   const save = useMutation({
     mutationFn: async (v: z.infer<typeof paymentSchema>) => {
@@ -292,6 +294,7 @@ function PaymentDialog({
 
   return (
     <DialogContent>
+      {verify.gate}
       <DialogHeader><DialogTitle className="font-display text-2xl">{payment ? "Edit payment" : "Record payment"}</DialogTitle></DialogHeader>
       <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="space-y-4">
         <div>
@@ -360,7 +363,7 @@ function PaymentDialog({
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <div>
             {payment && !payment.voided_at && (
-              <Button type="button" variant="ghost" onClick={() => voidPayment.mutate()} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
+              <Button type="button" variant="ghost" onClick={() => verify.run(() => voidPayment.mutate(), { reason: "Verify your identity to void this payment." })} disabled={!voidReason.trim() || voidPayment.isPending} className="text-destructive gap-2">
                 <Ban className="h-4 w-4" /> Void
               </Button>
             )}

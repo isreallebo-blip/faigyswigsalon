@@ -6,7 +6,9 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Mail } from "lucide-react";
+import { MoreHorizontal, UserPlus, Mail, ShieldOff } from "lucide-react";
+import { useVerifiedAction } from "@/components/verification-gate";
+import { adminResetLockout } from "@/lib/verification.functions";
 
 import {
   inviteUser,
@@ -70,6 +72,8 @@ function UsersPage() {
   const setStatus = useServerFn(setUserStatus);
   const resend = useServerFn(resendInvite);
   const access = useServerFn(getMyAccess);
+  const resetLockout = useServerFn(adminResetLockout);
+  const verify = useVerifiedAction();
 
   const meQ = useQuery({ queryKey: ["my-access"], queryFn: () => access() });
   const usersQ = useQuery({ queryKey: ["users"], queryFn: () => list() });
@@ -117,8 +121,15 @@ function UsersPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const resetLockoutMut = useMutation({
+    mutationFn: (user_id: string) => resetLockout({ data: { userId: user_id, subject: "staff" } }),
+    onSuccess: () => toast.success("Lockout reset"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   return (
     <div>
+      {verify.gate}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="font-display text-2xl">Users</h2>
@@ -241,13 +252,13 @@ function UsersPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             disabled={isMe || u.role === "admin"}
-                            onClick={() => roleMut.mutate({ user_id: u.id, role: "admin" })}
+                            onClick={() => verify.run(() => roleMut.mutate({ user_id: u.id, role: "admin" }), { reason: `Verify to change ${u.email}'s role.` })}
                           >
                             Make admin
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled={isMe || u.role === "staff"}
-                            onClick={() => roleMut.mutate({ user_id: u.id, role: "staff" })}
+                            onClick={() => verify.run(() => roleMut.mutate({ user_id: u.id, role: "staff" }), { reason: `Verify to change ${u.email}'s role.` })}
                           >
                             Make staff
                           </DropdownMenuItem>
@@ -258,17 +269,25 @@ function UsersPage() {
                               Resend invitation
                             </DropdownMenuItem>
                           )}
+                          {me?.isAdmin && !isMe && (
+                            <DropdownMenuItem
+                              onClick={() => verify.run(() => resetLockoutMut.mutate(u.id), { reason: `Verify to reset ${u.email}'s lockout.` })}
+                            >
+                              <ShieldOff className="h-4 w-4 mr-2" />
+                              Reset verification lockout
+                            </DropdownMenuItem>
+                          )}
                           {u.status !== "disabled" ? (
                             <DropdownMenuItem
                               disabled={isMe}
-                              onClick={() => statusMut.mutate({ user_id: u.id, status: "disabled" })}
+                              onClick={() => verify.run(() => statusMut.mutate({ user_id: u.id, status: "disabled" }), { reason: `Verify to disable ${u.email}.` })}
                               className="text-destructive"
                             >
                               Disable user
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
-                              onClick={() => statusMut.mutate({ user_id: u.id, status: "active" })}
+                              onClick={() => verify.run(() => statusMut.mutate({ user_id: u.id, status: "active" }), { reason: `Verify to re-enable ${u.email}.` })}
                             >
                               Re-enable user
                             </DropdownMenuItem>
