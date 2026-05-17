@@ -1,139 +1,118 @@
+# Reauthentication & Verification for Sensitive Actions
 
-# Client Messaging Inbox
+A 6-digit code (email or SMS) gates sensitive actions for both staff and client portal users. Successful verification unlocks sensitive actions for 15 minutes. 3 wrong attempts → 30-minute lockout + alert.
 
-Builds on the existing notification engine (Twilio + Resend already wired). Adds two-way messaging — clients reply to SMS/email and threads land in a CRM inbox; clients can also start threads from the portal.
+## 1. Database (one migration)
 
-## 1. Database
+**`verification_challenges`**
+- `id`, `user_id` (staff = auth.users.id, client = clients.id), `subject_type` ('staff'|'client')
+- `purpose` ('reauth' | 'email_change' | 'phone_change')
+- `channel` ('email'|'sms'), `destination_masked`
+- `code_hash` (sha256), `expires_at` (now + 10min), `consumed_at`
+- `attempts` (int, default 0), `created_at`, `ip_address`
 
-New tables (migration):
+**`verification_lockouts`**
+- `id`, `user_id`, `subject_type`, `locked_until`, `reason`, `created_at`
+- Unique partial index on active (locked_until > now()) rows
 
-- **`conversations`**
-  - `client_id` (FK), `subject` (text, nullable — for email threads)
-  - `status` enum: `unread | read | replied | resolved`
-  - `last_message_at`, `last_message_preview` (denormalized for inbox feed)
-  - `assigned_to` (uuid → profiles, nullable)
-  - `auto_reply_sent_at` (for 24h dedupe)
+**`verified_sessions`** (15-min sliding unlock window)
+- `id`, `user_id`, `subject_type`, `verified_at`, `expires_at` (verified_at + 15min)
 
-- **`messages`**
-  - `conversation_id` (FK), `client_id` (denormalized for RLS speed)
-  - `direction` enum: `inbound | outbound`
-  - `channel` enum: `sms | email | portal | internal_note`
-  - `body` (text), `subject` (text, email only)
-  - `sender_user_id` (staff who sent) / null for client/system
-  - `provider_message_id` (Twilio SID / Resend id / inbound email message-id)
-  - `delivery_status` enum: `queued | sent | delivered | read | failed`
-  - `read_by_staff_at`, `read_by_client_at`
-  - `metadata` jsonb
+**`pending_email_changes`**
+- `id`, `user_id`, `new_email`, `confirm_token`, `expires_at`, `confirmed_at`
 
-- **`broadcasts`**
-  - `sent_by` (uuid), `channel` enum, `body`, `email_subject`
-  - `recipient_filter` jsonb, `recipient_count` int
-  - `sent_count`, `delivered_count`, `failed_count`
-  - timestamps
+**`pending_phone_changes`**
+- `id`, `user_id`, `subject_type`, `new_phone`, `code_hash`, `expires_at`, `confirmed_at`, `attempts`
 
-- **`broadcast_recipients`** — per-client delivery row (status, message_id, error)
+RLS: users can read/insert their own rows; staff-side scoped via `auth.uid()`, client-side via `current_client_id()`.
 
-- **`messaging_settings`** — single-row table:
-  - `business_hours` jsonb (per-day open/close), `timezone`
-  - `auto_reply_enabled`, `auto_reply_body`
-  - `default_reply_channel` enum
-  - `default_assignee` (uuid)
+Helper SQL functions: `is_user_locked(uid, subject)`, `is_verified(uid, subject)`, `consume_verification(...)`.
 
-RLS:
-- Staff: full read/write on all tables.
-- Portal client: read/insert own `conversations` + `messages` (only `channel='portal'` outbound from client side, never `internal_note`). Cannot see `internal_note` rows.
-- `audit_logs` already covers all writes.
+Admin "reset lockout" → server function deletes active lockouts, logs to `audit_logs`.
 
-Indexes: `messages(conversation_id, created_at)`, `conversations(status, last_message_at desc)`, `conversations(client_id)`.
+## 2. Server functions (new `src/lib/verification.functions.ts`)
 
-## 2. Inbound webhooks (server routes under `/api/public/`)
+- `requestVerificationCode({ purpose, channel? })` — picks channel based on what's on file, generates 6-digit code, hashes, stores, sends via existing `notifications/send.server` (email) or Twilio inbound module's send helper (SMS).
+- `verifyCode({ challenge_id, code })` — checks expiry/attempts, increments on failure, on 3rd failure inserts lockout + fires alert email "Someone made multiple failed verification attempts".
+- `getVerificationStatus()` — returns `{ verified_until, locked_until }`.
+- `requestEmailChange({ new_email })` — requires `is_verified`; creates pending row, sends confirm link to new email, notice to old email.
+- `confirmEmailChange({ token })` — public route handler `/api/public/confirm-email-change`.
+- `requestPhoneChange({ new_phone })` — requires verified; sends SMS code to new number.
+- `confirmPhoneChange({ code })` — confirms phone, updates profile/client.
+- `changePasswordVerified({ new_password })` — requires verified; calls Supabase admin updateUserById; signs out other sessions (via `auth.admin.signOut(uid, 'others')`); sends confirmation.
+- `adminResetLockout({ user_id })` — admin-only, audit-logged.
 
-- **`/api/public/hooks/twilio-inbound`** (POST)
-  - Verify Twilio signature (`X-Twilio-Signature` HMAC-SHA1 with auth token).
-  - Match `From` phone → `clients.phone`. If no match → log to a `messages` row with `client_id=null` (unmatched bucket) — staff can later link.
-  - If body is `STOP`/`START`/`UNSUB` → toggle `clients.sms_opt_in` (already implemented STOP path; extend with START to re-enable).
-  - Otherwise create/find open conversation (most recent non-resolved for client) → insert inbound message → set `conversations.status='unread'`, bump `last_message_*`.
-  - Trigger auto-reply if outside business hours and not already sent in last 24h.
-  - Notify staff (see §6).
+All log to `audit_logs` with `action = 'verified_action'` or `'verification_failed'` + IP from request headers.
 
-- **`/api/public/hooks/resend-inbound`** (POST)
-  - Resend Inbound Emails webhook. Verify svix signature.
-  - Parse `In-Reply-To` / `References` headers → match to existing `messages.provider_message_id` to find conversation.
-  - Otherwise match by `from` email → client; new conversation.
-  - Insert inbound message, same flow as SMS.
+## 3. UI
 
-- **`/api/public/hooks/twilio-status`** (POST) — delivery status callbacks → update `messages.delivery_status`.
-- **`/api/public/hooks/resend-events`** (POST) — `email.delivered`, `email.opened`, `email.bounced` → update status.
+**Shared component** `src/components/verification-gate.tsx` — Dialog with:
+- Channel picker (if both email + phone)
+- "Send code" → 6 OTP boxes (uses existing `components/ui/input-otp.tsx`)
+- Countdown timer, resend after 60s
+- Inline error "Incorrect code, X attempts remaining"
+- Lockout screen with "try again in 30 minutes"
+- On success → calls `onVerified()` and shows the wrapped form
 
-Reply-To strategy for email: outbound notification emails set `Reply-To: inbox+<conversation_id>@notify.faigyswigsalon.com` so replies route correctly even without threading headers.
+**Hook** `useVerifiedAction()` — checks `getVerificationStatus`; if verified, runs action directly; otherwise opens gate.
 
-## 3. Server functions (`src/lib/inbox.functions.ts`)
+**Wiring points:**
 
-- `listConversations({ filter, search, dateRange })` — staff inbox feed
-- `getConversation(id)` — messages + client + assignment
-- `sendStaffReply({ conversationId, body, channel })` — sends via Twilio/Resend, logs to `notification_log` + `messages`, marks conversation `replied`
-- `addInternalNote({ conversationId, body })`
-- `assignConversation({ conversationId, userId })`
-- `markResolved(id)` / `markRead(id)`
-- `sendQuickMessage({ clientId, body, channel })` — from client profile
-- `sendPortalMessage({ body })` (uses `requireSupabaseAuth` → `current_client_id()`) — creates inbound `channel='portal'` message
-- `listPortalMessages()` — client's own thread
-- `sendBroadcast({ filter, channel, body, emailSubject })` — resolves recipients, enqueues sends, logs `broadcasts` + `broadcast_recipients`
-- `previewBroadcastRecipients(filter)` — returns count + sample names
-- `getMessagingSettings()` / `updateMessagingSettings(...)`
+Staff (`src/routes/_authenticated/profile.tsx`):
+- Replace current-password fields with verification gate for: change password, change email, change phone (add phone change section).
+- Password form: new password + confirm + strength indicator + requirements checklist.
 
-All staff functions check `is_staff(auth.uid())`. All writes call `logAudit(...)`.
+Staff sensitive actions:
+- Payments page: gate "View full details" + CSV export buttons.
+- Audit log route: gate the page itself.
+- Settings → Users: gate the page; gate role change, enable/disable, "Reset verification lockout" button (admin-only).
+- Repairs/Inventory/Clients CSV export buttons (if present).
+- Payments: gate "Void" button.
 
-## 4. Staff UI
+Client portal (`src/routes/portal.profile.tsx`):
+- Gate change password, email, phone, view full payment history (`portal.payments.tsx`).
 
-- **Sidebar**: new "Inbox" icon with unread badge (Realtime subscription on `conversations` count where status='unread').
-- **`/inbox`** — split layout:
-  - Left: conversation list with filters (All/Unread/Replied/Resolved, SMS/Email, date, search).
-  - Right: thread view — message bubbles (inbound left, outbound right, internal notes amber bg with "Internal note" tag), Hebrew date below each.
-  - Reply composer: textarea, channel toggle (SMS/Email default = match last inbound), SMS char counter (160 segments warning), Send, "Add internal note" toggle, "Mark resolved", "Assign to" dropdown.
-- **Client profile** — new "Message" button → modal compose (channel toggle, body) → calls `sendQuickMessage`.
-- **Client profile "Messages" tab** — shows that client's conversation thread inline.
-- **`/settings/messaging`** — business hours editor (per-day), auto-reply text, default channel, default assignee, displayed Twilio number.
-- **`/settings/broadcasts`** — compose form: recipient filter (radio: all active / search-multi-select / has-upcoming-appt / outstanding-balance / wigs-in-repair), channel, body with variable chips, preview pane, "Send to N clients — confirm?" dialog, post-send delivery report.
+**Pending change banner** — small component on profile pages showing "Email change pending — check your new inbox".
 
-## 5. Portal UI
+## 4. Audit log
 
-- **`/portal/messages`** — chat-style thread (messages where `channel != 'internal_note'`), composer at bottom, "Delivered/Read" indicators, Realtime subscription for new staff replies.
-- New "Messages" link in portal nav with unread badge.
+- Every code request, success, failure, lockout, admin reset → `audit_logs` row.
+- Sensitive actions completed in verified window → existing audit insert + `metadata.verified = true`. Audit log UI renders a small "Verified" badge when `metadata.verified`.
 
-## 6. Notifications to staff
+## 5. Notifications
 
-- On new inbound message:
-  - Realtime push updates badge instantly.
-  - Email all admins (and assigned staff, if any) via existing `sendNotification` engine using a new system template `inbox_new_message` (admin-only — bypasses client opt-in checks since recipients are staff). Subject: `New message from [Client Name]`. Body includes preview + link to `/inbox/<id>`.
+- Use existing `sendEmail` (Resend via notify.faigyswigsalon.com) and existing Twilio SMS helper.
+- New templates inline in `verification.functions.ts`:
+  - Code email/SMS ("Your verification code is 123456")
+  - Failed-attempts alert email
+  - Action-completed confirmation (password/email/phone changed)
+  - Email-change notice to old address
+  - Phone-change notice to old number
 
-## 7. Audit
+## 6. Out of scope / kept simple
 
-Every send (staff reply, internal note, broadcast, assignment, status change, settings update) calls `logAudit({ module: 'inbox', action, summary, before, after })`. `audit_logs` is already append-only (no DELETE/UPDATE policies) — logs are immutable for everyone including admins.
+- Reauth lockout is per-user, not per-action.
+- Code length fixed 6 digits, numeric.
+- IP address read from `cf-connecting-ip` / `x-forwarded-for` headers in server fns.
+- No backup codes / TOTP — only email/SMS OTP as spec'd.
 
-## 8. Secrets / config needed
+## Files touched
 
-All already in place:
-- ✅ `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
-- ✅ `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+New:
+- `supabase/migrations/<ts>_verification.sql`
+- `src/lib/verification.functions.ts`
+- `src/lib/verification.server.ts` (helpers: hash, generate, send)
+- `src/components/verification-gate.tsx`
+- `src/lib/use-verified-action.ts`
+- `src/components/pending-change-banner.tsx`
+- `src/routes/api/public/confirm-email-change.ts`
 
-User-side configuration after build (one-time, in Twilio + Resend dashboards):
-- Twilio phone number → set inbound SMS webhook to `https://faigyswigsalon.lovable.app/api/public/hooks/twilio-inbound` and status callback to `/api/public/hooks/twilio-status`.
-- Resend → enable Inbound Emails on `notify.faigyswigsalon.com` MX, route to `/api/public/hooks/resend-inbound`. Add webhook for delivery events to `/api/public/hooks/resend-events`.
+Edited:
+- `src/routes/_authenticated/profile.tsx` (full rewrite of email/password sections; add phone change)
+- `src/routes/_authenticated/settings.users.tsx` (gate + admin reset lockout button)
+- `src/routes/_authenticated/settings.audit-log.tsx` (gate + verified badge rendering)
+- `src/routes/_authenticated/payments.tsx` (gate void / full view / CSV)
+- `src/routes/portal.profile.tsx` (gate + phone change UI)
+- `src/routes/portal.payments.tsx` (gate full history)
 
-I'll print the exact URLs + setup steps after deployment.
-
-## 9. Build order (to keep diffs reviewable)
-
-1. Migration (tables + RLS + indexes + seed default `messaging_settings` row).
-2. Server functions (`inbox.functions.ts`, `broadcast.functions.ts`, `messaging-settings.functions.ts`).
-3. Inbound webhooks (Twilio + Resend) with signature verification.
-4. Outbound delivery status webhooks.
-5. Staff inbox UI + sidebar badge + Realtime.
-6. Client profile Message button + Messages tab.
-7. Settings → Messaging + Broadcasts pages.
-8. Portal Messages tab + Realtime.
-9. Wire `Reply-To: inbox+<id>@...` into existing outbound email sender.
-10. Hook auto-reply + admin email-on-inbound into webhook handlers.
-
-Approve and I'll ship it in order — starting with the migration.
+Approve to proceed?
