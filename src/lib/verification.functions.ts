@@ -315,8 +315,9 @@ export const changePasswordVerified = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     // Best-effort sign out other sessions
     try {
-      // @ts-expect-error scope flag is supported by gotrue
-      await supabaseAdmin.auth.admin.signOut(s.authUserId, "others");
+      await (supabaseAdmin.auth.admin as unknown as {
+        signOut: (uid: string, scope?: string) => Promise<unknown>;
+      }).signOut(s.authUserId, "others");
     } catch {
       /* ignore */
     }
