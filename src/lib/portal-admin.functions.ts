@@ -227,7 +227,7 @@ export const sendPortalInvite = createServerFn({ method: "POST" })
     await sendNotification({
       clientId: client.id,
       templateKey: "portal_invite",
-      vars: { firstName: client.full_name.split(" ")[0] ?? "" },
+      vars: { firstName: client.full_name.split(" ")[0] ?? "", portalLink },
     });
 
     await supabaseAdmin
