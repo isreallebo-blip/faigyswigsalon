@@ -17,6 +17,8 @@ export type NotifVars = {
   newDate?: string;
   newDay?: string;
   newTime?: string;
+  portalLink?: string;
+  resetLink?: string;
 };
 
 function applyVars(template: string, v: NotifVars): string {
