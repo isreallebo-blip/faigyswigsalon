@@ -1,7 +1,7 @@
 // Server-only helpers for sending and receiving inbox messages.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const INBOUND_DOMAIN = "notify.faigyswigsalon.com";
+const INBOUND_DOMAIN = "replies.faigyswigsalon.com";
 
 export function replyToForConversation(conversationId: string): string {
   return `inbox+${conversationId}@${INBOUND_DOMAIN}`;
