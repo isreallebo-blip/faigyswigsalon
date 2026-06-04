@@ -16,6 +16,8 @@ type ResendInbound = {
     from?: Addr | Addr[];
     to?: Addr | Addr[];
     subject?: string;
+    email_id?: string;
+    emailId?: string;
     text?: string;
     html?: string;
     headers?: Record<string, string> | Array<{ name: string; value: string }>;
@@ -54,6 +56,48 @@ function htmlToPlain(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+async function fetchResendEmail(emailId: string): Promise<{
+  from?: Addr | Addr[];
+  to?: Addr | Addr[];
+  subject?: string;
+  text?: string | null;
+  html?: string | null;
+} | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !emailId) return null;
+
+  try {
+    const res = await fetch(`https://api.resend.com/emails/${encodeURIComponent(emailId)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!res.ok) {
+      console.warn("[resend-inbound] failed to retrieve full email", emailId, res.status);
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json: any = await res.json();
+    const email = json?.data ?? json;
+    if (!email || typeof email !== "object") return null;
+
+    return {
+      from: email.from,
+      to: email.to,
+      subject: email.subject,
+      text: email.text ?? null,
+      html: email.html ?? null,
+    };
+  } catch (error) {
+    console.warn(
+      "[resend-inbound] failed to retrieve full email",
+      emailId,
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
+  }
 }
 
 
