@@ -558,7 +558,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {(w.photos ?? []).map((url) => (
           <div key={url} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <WigImage path={url} className="h-full w-full object-cover" />
             <button
               onClick={() => removePhoto.mutate(url)}
               className="absolute right-1 top-1 rounded-full bg-foreground/70 p-1 text-background opacity-0 transition group-hover:opacity-100"
