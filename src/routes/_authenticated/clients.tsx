@@ -455,8 +455,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
       const path = `${clientId}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("client-photos").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from("client-photos").getPublicUrl(path);
-      const { error } = await supabase.from("clients").update({ photo_url: data.publicUrl }).eq("id", clientId);
+      const { error } = await supabase.from("clients").update({ photo_url: path }).eq("id", clientId);
       if (error) throw error;
     },
     onSuccess: () => {
