@@ -9,19 +9,37 @@ import {
   notifyStaffOfInbound,
 } from "@/lib/inbox/send.server";
 
+type Addr = string | { email?: string; address?: string; name?: string };
 type ResendInbound = {
   type?: string;
   data?: {
-    from?: { email?: string };
-    to?: Array<{ email?: string }>;
+    from?: Addr | Addr[];
+    to?: Addr | Addr[];
     subject?: string;
     text?: string;
     html?: string;
-    headers?: Record<string, string>;
+    headers?: Record<string, string> | Array<{ name: string; value: string }>;
     message_id?: string;
+    messageId?: string;
     in_reply_to?: string;
+    inReplyTo?: string;
   };
 };
+
+function addrEmail(a: Addr | undefined | null): string {
+  if (!a) return "";
+  if (typeof a === "string") {
+    // "Name <foo@bar.com>" or "foo@bar.com"
+    const m = a.match(/<([^>]+)>/);
+    return (m ? m[1] : a).trim().toLowerCase();
+  }
+  return (a.email ?? a.address ?? "").trim().toLowerCase();
+}
+function addrList(a: Addr | Addr[] | undefined): string[] {
+  if (!a) return [];
+  return (Array.isArray(a) ? a : [a]).map(addrEmail).filter(Boolean);
+}
+
 
 /**
  * Verify a Svix-signed webhook (Resend Inbound uses Svix).
@@ -97,21 +115,23 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
         const d = payload?.data;
         if (!d) return new Response("ok");
 
-        const fromEmail = d.from?.email?.toLowerCase() ?? "";
+        const fromEmail = addrList(d.from)[0] ?? "";
+        const toEmails = addrList(d.to);
         const body = d.text ?? d.html ?? "";
         const subject = d.subject ?? "";
-        const providerId = d.message_id ?? null;
-        const inReplyTo = d.in_reply_to ?? null;
+        const providerId = d.message_id ?? d.messageId ?? null;
+        const inReplyTo = d.in_reply_to ?? d.inReplyTo ?? null;
 
         // Try to find conversation via the To: address (inbox+<id>@...)
         let conversationId: string | null = null;
-        for (const r of d.to ?? []) {
-          const cid = extractConversationIdFromAddress(r.email);
+        for (const email of toEmails) {
+          const cid = extractConversationIdFromAddress(email);
           if (cid) {
             conversationId = cid;
             break;
           }
         }
+
 
         // Fallback: match by sender email -> client
         const { data: client } = await supabaseAdmin
