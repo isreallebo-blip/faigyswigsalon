@@ -186,7 +186,7 @@ function WigCatalog() {
               <Card className="overflow-hidden transition hover:shadow-soft hover:border-gold/40">
                 <div className="aspect-[3/4] w-full bg-muted">
                   {w.photos?.[0] ? (
-                    <img src={w.photos[0]} alt={w.style ?? "Wig"} className="h-full w-full object-cover" />
+                    <WigImage path={w.photos[0]} alt={w.style ?? "Wig"} className="h-full w-full object-cover" />
                   ) : (
                     <div className="grid h-full w-full place-items-center text-muted-foreground">
                       <ImageOff className="h-8 w-8" />
