@@ -181,15 +181,34 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const e: any = d.email ?? d;
 
-        const fromEmail = addrList(e.from)[0] ?? addrList(d.from)[0] ?? "";
-        const toEmails = addrList(e.to).length ? addrList(e.to) : addrList(d.to);
+        const fetchedEmail = await fetchResendEmail(d.email_id ?? d.emailId ?? null);
+        const fromEmail =
+          addrList(e.from)[0] ?? addrList(d.from)[0] ?? addrList(fetchedEmail?.from)[0] ?? "";
+        const toEmails = addrList(e.to).length
+          ? addrList(e.to)
+          : addrList(d.to).length
+            ? addrList(d.to)
+            : addrList(fetchedEmail?.to);
         const textBody =
-          e.text ?? e.text_body ?? e.textBody ?? e.plain ?? e.body_plain ?? e.bodyPlain ?? null;
+          e.text ??
+          e.text_body ??
+          e.textBody ??
+          e.plain ??
+          e.body_plain ??
+          e.bodyPlain ??
+          fetchedEmail?.text ??
+          null;
         const htmlBody =
-          e.html ?? e.html_body ?? e.htmlBody ?? e.body_html ?? e.bodyHtml ?? null;
+          e.html ??
+          e.html_body ??
+          e.htmlBody ??
+          e.body_html ??
+          e.bodyHtml ??
+          fetchedEmail?.html ??
+          null;
         const body: string = textBody ?? htmlToPlain(htmlBody ?? "") ?? "";
-        const subject = e.subject ?? d.subject ?? "";
-        const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? null;
+        const subject = e.subject ?? d.subject ?? fetchedEmail?.subject ?? "";
+        const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? d.email_id ?? d.emailId ?? null;
         const inReplyTo = e.in_reply_to ?? e.inReplyTo ?? d.in_reply_to ?? d.inReplyTo ?? null;
 
         if (!body) {
@@ -200,6 +219,12 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
             Object.keys(d ?? {}),
             "email keys:",
             e === d ? "(none)" : Object.keys(e ?? {}),
+            "email_id:",
+            d.email_id ?? d.emailId ?? null,
+            "full-email-fetched:",
+            Boolean(fetchedEmail),
+            "has-resend-api-key:",
+            Boolean(process.env.RESEND_API_KEY),
           );
         }
 
