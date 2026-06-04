@@ -171,8 +171,7 @@ function ProfilePage() {
       const path = `${profile.id}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      await updateProfile({ data: { avatar_url: data.publicUrl } });
+      await updateProfile({ data: { avatar_url: path } });
       toast.success("Photo updated");
       qc.invalidateQueries({ queryKey: ["my-profile"] });
     } catch (err) {
