@@ -481,8 +481,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
         const path = `${wigId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("wig-photos").upload(path, file, { upsert: true });
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from("wig-photos").getPublicUrl(path);
-        newUrls.push(data.publicUrl);
+        newUrls.push(path);
       }
       const photos = [...(w.photos ?? []), ...newUrls];
       const { error } = await supabase.from("wigs").update({ photos }).eq("id", wigId);
