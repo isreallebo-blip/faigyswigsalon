@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { VendorSelect } from "@/components/vendor-select";
+import { useSignedPhoto } from "@/lib/use-signed-photo";
 
 type Wig = Database["public"]["Tables"]["wigs"]["Row"];
 type WigStatus = Database["public"]["Enums"]["wig_status"];
