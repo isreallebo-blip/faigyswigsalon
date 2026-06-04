@@ -206,15 +206,32 @@ export const getPortalWigs = createServerFn({ method: "GET" })
     }
 
     const all = [...reservedRows, ...extra];
-    return all.map((w) => ({
-      id: w.id,
-      display_id: w.display_id,
-      style: w.style,
-      color: w.color,
-      hair_type: w.hair_type,
-      photo: (w.photos ?? [])[0] ?? null,
-      client_status: clientWigStatus(w.status),
-    }));
+    const signed = await Promise.all(
+      all.map(async (w) => {
+        const firstPath = (w.photos ?? [])[0] ?? null;
+        let photo: string | null = null;
+        if (firstPath) {
+          if (/^https?:\/\//i.test(firstPath)) {
+            photo = firstPath;
+          } else {
+            const { data } = await supabaseAdmin.storage
+              .from("wig-photos")
+              .createSignedUrl(firstPath, 3600);
+            photo = data?.signedUrl ?? null;
+          }
+        }
+        return {
+          id: w.id,
+          display_id: w.display_id,
+          style: w.style,
+          color: w.color,
+          hair_type: w.hair_type,
+          photo,
+          client_status: clientWigStatus(w.status),
+        };
+      }),
+    );
+    return signed;
   });
 
 export const getPortalRepairs = createServerFn({ method: "GET" })

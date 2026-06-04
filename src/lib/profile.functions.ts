@@ -38,7 +38,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
         first_name: z.string().trim().max(80).optional().nullable(),
         last_name: z.string().trim().max(80).optional().nullable(),
         phone: z.string().trim().max(40).optional().nullable(),
-        avatar_url: z.string().url().max(1024).optional().nullable(),
+        avatar_url: z.string().trim().max(1024).optional().nullable(),
       })
       .parse(input),
   )

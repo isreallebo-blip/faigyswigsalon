@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { VendorSelect } from "@/components/vendor-select";
+import { useSignedPhoto } from "@/lib/use-signed-photo";
 
 type Wig = Database["public"]["Tables"]["wigs"]["Row"];
 type WigStatus = Database["public"]["Enums"]["wig_status"];
@@ -185,7 +186,7 @@ function WigCatalog() {
               <Card className="overflow-hidden transition hover:shadow-soft hover:border-gold/40">
                 <div className="aspect-[3/4] w-full bg-muted">
                   {w.photos?.[0] ? (
-                    <img src={w.photos[0]} alt={w.style ?? "Wig"} className="h-full w-full object-cover" />
+                    <WigImage path={w.photos[0]} alt={w.style ?? "Wig"} className="h-full w-full object-cover" />
                   ) : (
                     <div className="grid h-full w-full place-items-center text-muted-foreground">
                       <ImageOff className="h-8 w-8" />
@@ -446,6 +447,12 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
+function WigImage({ path, alt, className }: { path: string; alt?: string; className?: string }) {
+  const src = useSignedPhoto("wig-photos", path);
+  if (!src) return <div className={className} />;
+  return <img src={src} alt={alt ?? ""} className={className} />;
+}
+
 function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -474,8 +481,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
         const path = `${wigId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("wig-photos").upload(path, file, { upsert: true });
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from("wig-photos").getPublicUrl(path);
-        newUrls.push(data.publicUrl);
+        newUrls.push(path);
       }
       const photos = [...(w.photos ?? []), ...newUrls];
       const { error } = await supabase.from("wigs").update({ photos }).eq("id", wigId);
@@ -552,7 +558,7 @@ function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {(w.photos ?? []).map((url) => (
           <div key={url} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <WigImage path={url} className="h-full w-full object-cover" />
             <button
               onClick={() => removePhoto.mutate(url)}
               className="absolute right-1 top-1 rounded-full bg-foreground/70 p-1 text-background opacity-0 transition group-hover:opacity-100"
