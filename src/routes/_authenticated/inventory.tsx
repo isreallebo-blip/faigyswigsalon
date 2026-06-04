@@ -447,6 +447,12 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
+function WigImage({ path, alt, className }: { path: string; alt?: string; className?: string }) {
+  const src = useSignedPhoto("wig-photos", path);
+  if (!src) return <div className={className} />;
+  return <img src={src} alt={alt ?? ""} className={className} />;
+}
+
 function WigDetail({ wigId, onClose }: { wigId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
