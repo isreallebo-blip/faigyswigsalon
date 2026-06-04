@@ -40,6 +40,23 @@ function addrList(a: Addr | Addr[] | undefined): string[] {
   return (Array.isArray(a) ? a : [a]).map(addrEmail).filter(Boolean);
 }
 
+function htmlToPlain(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+
 
 /**
  * Verify a Svix-signed webhook (Resend Inbound uses Svix).
@@ -112,15 +129,36 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
           return new Response("Invalid JSON", { status: 400 });
         }
 
-        const d = payload?.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const root = payload as any;
+        const d = root?.data ?? root;
         if (!d) return new Response("ok");
+        // Resend inbound may nest the email under data.email or send extra body fields
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const e: any = d.email ?? d;
 
-        const fromEmail = addrList(d.from)[0] ?? "";
-        const toEmails = addrList(d.to);
-        const body = d.text ?? d.html ?? "";
-        const subject = d.subject ?? "";
-        const providerId = d.message_id ?? d.messageId ?? null;
-        const inReplyTo = d.in_reply_to ?? d.inReplyTo ?? null;
+        const fromEmail = addrList(e.from)[0] ?? addrList(d.from)[0] ?? "";
+        const toEmails = addrList(e.to).length ? addrList(e.to) : addrList(d.to);
+        const textBody =
+          e.text ?? e.text_body ?? e.textBody ?? e.plain ?? e.body_plain ?? e.bodyPlain ?? null;
+        const htmlBody =
+          e.html ?? e.html_body ?? e.htmlBody ?? e.body_html ?? e.bodyHtml ?? null;
+        const body: string = textBody ?? htmlToPlain(htmlBody ?? "") ?? "";
+        const subject = e.subject ?? d.subject ?? "";
+        const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? null;
+        const inReplyTo = e.in_reply_to ?? e.inReplyTo ?? d.in_reply_to ?? d.inReplyTo ?? null;
+
+        if (!body) {
+          console.warn(
+            "[resend-inbound] empty body — payload top-level keys:",
+            Object.keys(root ?? {}),
+            "data keys:",
+            Object.keys(d ?? {}),
+            "email keys:",
+            e === d ? "(none)" : Object.keys(e ?? {}),
+          );
+        }
+
 
         // Try to find conversation via the To: address (inbox+<id>@...)
         let conversationId: string | null = null;

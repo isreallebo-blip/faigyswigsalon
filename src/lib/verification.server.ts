@@ -56,22 +56,14 @@ export async function sendEmail(
   subject: string,
   html: string,
 ): Promise<{ id?: string; error?: string }> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!key || !from) return { error: "Resend not configured" };
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html }),
-    });
-    const json = (await res.json()) as { id?: string; message?: string };
-    if (!res.ok) return { error: json.message ?? `Resend ${res.status}` };
-    return { id: json.id };
+    const { sendEmailRaw } = await import("@/lib/inbox/send.server");
+    return await sendEmailRaw({ to, subject, html });
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };
   }
 }
+
 
 export function codeEmailHtml(code: string): string {
   return `<!doctype html><html><body style="margin:0;background:#faf6ef;font-family:Georgia,serif;color:#2a2218;">
