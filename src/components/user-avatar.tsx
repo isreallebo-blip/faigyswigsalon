@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { avatarColor, getInitials } from "@/lib/use-profile";
+import { useSignedPhoto } from "@/lib/use-signed-photo";
 
 type ProfileLike = {
   first_name?: string | null;
@@ -21,12 +22,13 @@ export function UserAvatar({
   const initials = getInitials(profile);
   const bg = avatarColor(profile?.email ?? profile?.full_name ?? initials);
   const fontSize = Math.round(size * 0.4);
+  const signed = useSignedPhoto("avatars", profile?.avatar_url);
 
-  if (profile?.avatar_url) {
+  if (signed) {
     return (
       <img
-        src={profile.avatar_url}
-        alt={profile.full_name ?? "Avatar"}
+        src={signed}
+        alt={profile?.full_name ?? "Avatar"}
         className={cn("rounded-full object-cover", className)}
         style={{ width: size, height: size }}
       />
@@ -45,3 +47,4 @@ export function UserAvatar({
     </div>
   );
 }
+
