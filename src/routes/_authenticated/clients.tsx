@@ -29,6 +29,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
 import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components/portal-access";
+import { useSignedPhoto } from "@/lib/use-signed-photo";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
@@ -230,10 +231,11 @@ function ClientAvatar({ client, size = 40 }: { client: Pick<Client, "full_name" 
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
-  if (client.photo_url) {
+  const signed = useSignedPhoto("client-photos", client.photo_url);
+  if (signed) {
     return (
       <img
-        src={client.photo_url}
+        src={signed}
         alt={client.full_name}
         style={{ width: size, height: size }}
         className="rounded-full object-cover"
@@ -249,6 +251,7 @@ function ClientAvatar({ client, size = 40 }: { client: Pick<Client, "full_name" 
     </div>
   );
 }
+
 
 function ClientDialog({
   mode,
@@ -452,8 +455,7 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
       const path = `${clientId}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("client-photos").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from("client-photos").getPublicUrl(path);
-      const { error } = await supabase.from("clients").update({ photo_url: data.publicUrl }).eq("id", clientId);
+      const { error } = await supabase.from("clients").update({ photo_url: path }).eq("id", clientId);
       if (error) throw error;
     },
     onSuccess: () => {
