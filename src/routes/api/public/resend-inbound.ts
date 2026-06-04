@@ -115,21 +115,23 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
         const d = payload?.data;
         if (!d) return new Response("ok");
 
-        const fromEmail = d.from?.email?.toLowerCase() ?? "";
+        const fromEmail = addrList(d.from)[0] ?? "";
+        const toEmails = addrList(d.to);
         const body = d.text ?? d.html ?? "";
         const subject = d.subject ?? "";
-        const providerId = d.message_id ?? null;
-        const inReplyTo = d.in_reply_to ?? null;
+        const providerId = d.message_id ?? d.messageId ?? null;
+        const inReplyTo = d.in_reply_to ?? d.inReplyTo ?? null;
 
         // Try to find conversation via the To: address (inbox+<id>@...)
         let conversationId: string | null = null;
-        for (const r of d.to ?? []) {
-          const cid = extractConversationIdFromAddress(r.email);
+        for (const email of toEmails) {
+          const cid = extractConversationIdFromAddress(email);
           if (cid) {
             conversationId = cid;
             break;
           }
         }
+
 
         // Fallback: match by sender email -> client
         const { data: client } = await supabaseAdmin
