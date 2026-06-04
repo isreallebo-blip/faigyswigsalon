@@ -29,6 +29,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
 import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components/portal-access";
+import { useSignedPhoto } from "@/lib/use-signed-photo";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
