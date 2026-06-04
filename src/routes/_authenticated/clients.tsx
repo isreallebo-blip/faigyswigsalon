@@ -230,10 +230,11 @@ function ClientAvatar({ client, size = 40 }: { client: Pick<Client, "full_name" 
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
-  if (client.photo_url) {
+  const signed = useSignedPhoto("client-photos", client.photo_url);
+  if (signed) {
     return (
       <img
-        src={client.photo_url}
+        src={signed}
         alt={client.full_name}
         style={{ width: size, height: size }}
         className="rounded-full object-cover"
@@ -249,6 +250,7 @@ function ClientAvatar({ client, size = 40 }: { client: Pick<Client, "full_name" 
     </div>
   );
 }
+
 
 function ClientDialog({
   mode,
