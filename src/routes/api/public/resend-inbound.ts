@@ -58,7 +58,7 @@ function htmlToPlain(html: string): string {
     .trim();
 }
 
-async function fetchResendEmail(emailId: string): Promise<{
+async function fetchResendEmail(emailId: string | null | undefined): Promise<{
   from?: Addr | Addr[];
   to?: Addr | Addr[];
   subject?: string;
