@@ -245,8 +245,8 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
           e.bodyHtml ??
           fetchedEmail?.html ??
           null;
-        const rawBody = (textBody ?? htmlToPlain(htmlBody ?? "") ?? "").trim();
-        const body = stripQuotedReply(rawBody);
+        const rawMessageBody = (textBody ?? htmlToPlain(htmlBody ?? "") ?? "").trim();
+        const body = stripQuotedReply(rawMessageBody);
         const subject = e.subject ?? d.subject ?? fetchedEmail?.subject ?? "";
         const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? d.email_id ?? d.emailId ?? null;
         const inReplyTo = e.in_reply_to ?? e.inReplyTo ?? d.in_reply_to ?? d.inReplyTo ?? null;
@@ -264,7 +264,7 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
             "full-email-fetched:",
             Boolean(fetchedEmail),
             "raw-body-length:",
-            rawBody.length,
+            rawMessageBody.length,
             "has-resend-api-key:",
             Boolean(process.env.RESEND_API_KEY),
           );
