@@ -115,7 +115,7 @@ function PortalSignupPage() {
     >
       <div className="mx-auto max-w-md">
         <div className="text-center">
-          <Link to="/login" className="font-display text-2xl tracking-wide text-[oklch(0.22_0.02_60)]">
+          <Link to="/login" search={{ redirect: "/" }} className="font-display text-2xl tracking-wide text-[oklch(0.22_0.02_60)]">
             Faigy's Wig Salon
           </Link>
           <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[oklch(0.45_0.02_60)]">
@@ -274,7 +274,7 @@ function PortalSignupPage() {
         </p>
         <p className="mt-2 text-center text-xs text-[oklch(0.45_0.02_60)]">
           Are you a staff member?{" "}
-          <Link to="/login" className="underline underline-offset-4">
+          <Link to="/login" search={{ redirect: "/" }} className="underline underline-offset-4">
             Log in here
           </Link>
         </p>
