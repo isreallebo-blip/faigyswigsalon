@@ -59,10 +59,37 @@ function htmlToPlain(html: string): string {
 }
 
 function stripQuotedReply(body: string): string {
-  const normalized = body.replace(/\r\n?/g, "\n").trim();
+  const normalized = body
+    .replace(/[\u00a0\u202f]/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .trim();
   if (!normalized) return "";
 
-  const lines = normalized.split("\n");
+  const boundaries = [
+    /(?:^|\n)On [^\n]*(?:\n[^\n]*){0,2}?wrote:\s*(?:\n|$)/i,
+    /(?:^|\n)-{2,}\s*Original Message\s*-{2,}/i,
+    /(?:^|\n)From:\s+/i,
+    /(?:^|\n)Sent:\s+/i,
+    /(?:^|\n)To:\s+/i,
+    /(?:^|\n)Subject:\s+/i,
+    /(?:^|\n)>/m,
+    /(?:^|\n)Reply to this email and we'll see your message in our inbox\.?$/im,
+    /(?:^|\n)You received this email because of an action on /i,
+    /(?:^|\n)Unsubscribe from these emails$/im,
+    /(?:^|\n)conv:[0-9a-f-]{36}$/im,
+  ];
+
+  let cutoff = normalized.length;
+  for (const pattern of boundaries) {
+    const match = pattern.exec(normalized);
+    if (!match || match.index >= cutoff) continue;
+    cutoff = match.index + (match[0].startsWith("\n") ? 1 : 0);
+  }
+
+  const unquoted = normalized.slice(0, cutoff).trim();
+  if (!unquoted) return "";
+
+  const lines = unquoted.split("\n");
   const kept: string[] = [];
 
   const isQuoteBoundary = (line: string, nextLine?: string): boolean => {
