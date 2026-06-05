@@ -129,7 +129,7 @@ function PortalLoginPage() {
 
       <p className="mt-4 text-center text-xs text-[oklch(0.45_0.02_60)]">
         Are you a staff member?{" "}
-        <Link to="/login" className="underline underline-offset-4">
+        <Link to="/login" search={{ redirect: "/" }} className="underline underline-offset-4">
           Log in here
         </Link>
       </p>
