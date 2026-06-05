@@ -58,6 +58,45 @@ function htmlToPlain(html: string): string {
     .trim();
 }
 
+function stripQuotedReply(body: string): string {
+  const normalized = body.replace(/\r\n?/g, "\n").trim();
+  if (!normalized) return "";
+
+  const lines = normalized.split("\n");
+  const kept: string[] = [];
+
+  const isQuoteBoundary = (line: string, nextLine?: string): boolean => {
+    const trimmed = line.trim();
+    const nextTrimmed = nextLine?.trim() ?? "";
+    if (!trimmed) return false;
+
+    return (
+      /^>+/.test(trimmed) ||
+      /^On .+wrote:?$/i.test(trimmed) ||
+      (/^On .+$/i.test(trimmed) && /wrote:?$/i.test(nextTrimmed)) ||
+      /^-{2,}\s*Original Message\s*-{2,}$/i.test(trimmed) ||
+      /^From:\s+/i.test(trimmed) ||
+      /^Sent:\s+/i.test(trimmed) ||
+      /^To:\s+/i.test(trimmed) ||
+      /^Subject:\s+/i.test(trimmed) ||
+      /^Reply to this email and we'll see your message in our inbox\.?$/i.test(trimmed) ||
+      /^You received this email because of an action on /i.test(trimmed) ||
+      /^Unsubscribe from these emails$/i.test(trimmed) ||
+      /^conv:[0-9a-f-]{36}$/i.test(trimmed) ||
+      /^<?https?:\/\/\S+>?$/i.test(trimmed)
+    );
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    const nextLine = lines[i + 1];
+    if (isQuoteBoundary(line, nextLine)) break;
+    kept.push(line);
+  }
+
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 async function fetchResendEmail(emailId: string | null | undefined): Promise<{
   from?: Addr | Addr[];
   to?: Addr | Addr[];
@@ -206,7 +245,8 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
           e.bodyHtml ??
           fetchedEmail?.html ??
           null;
-        const body = (textBody ?? htmlToPlain(htmlBody ?? "") ?? "").trim();
+        const rawMessageBody = (textBody ?? htmlToPlain(htmlBody ?? "") ?? "").trim();
+        const body = stripQuotedReply(rawMessageBody);
         const subject = e.subject ?? d.subject ?? fetchedEmail?.subject ?? "";
         const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? d.email_id ?? d.emailId ?? null;
         const inReplyTo = e.in_reply_to ?? e.inReplyTo ?? d.in_reply_to ?? d.inReplyTo ?? null;
@@ -223,6 +263,8 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
             d.email_id ?? d.emailId ?? null,
             "full-email-fetched:",
             Boolean(fetchedEmail),
+            "raw-body-length:",
+            rawMessageBody.length,
             "has-resend-api-key:",
             Boolean(process.env.RESEND_API_KEY),
           );

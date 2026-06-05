@@ -73,6 +73,7 @@ function ForgotPasswordPage() {
 
         <Link
           to="/login"
+          search={{ redirect: "/" }}
           className="mt-6 block text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
         >
           Back to sign in
