@@ -69,7 +69,7 @@ async function fetchResendEmail(emailId: string | null | undefined): Promise<{
   if (!apiKey || !emailId) return null;
 
   try {
-    const res = await fetch(`https://api.resend.com/emails/${encodeURIComponent(emailId)}`, {
+    const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
@@ -206,7 +206,7 @@ export const Route = createFileRoute("/api/public/resend-inbound")({
           e.bodyHtml ??
           fetchedEmail?.html ??
           null;
-        const body: string = textBody ?? htmlToPlain(htmlBody ?? "") ?? "";
+        const body = (textBody ?? htmlToPlain(htmlBody ?? "") ?? "").trim();
         const subject = e.subject ?? d.subject ?? fetchedEmail?.subject ?? "";
         const providerId = e.message_id ?? e.messageId ?? d.message_id ?? d.messageId ?? d.email_id ?? d.emailId ?? null;
         const inReplyTo = e.in_reply_to ?? e.inReplyTo ?? d.in_reply_to ?? d.inReplyTo ?? null;
