@@ -223,6 +223,15 @@ function LoginPage() {
             Log in here
           </a>
         </p>
+
+        <footer className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Faigy's Wig Salon</span>
+          <span className="hidden sm:inline">·</span>
+          <div className="flex gap-4">
+            <Link to="/terms" className="hover:text-foreground underline underline-offset-4">Terms</Link>
+            <Link to="/privacy" className="hover:text-foreground underline underline-offset-4">Privacy</Link>
+          </div>
+        </footer>
       </div>
     </div>
   );
