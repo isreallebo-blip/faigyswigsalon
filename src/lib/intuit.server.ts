@@ -1,8 +1,109 @@
 // SERVER-ONLY: Intuit / QuickBooks Payments helpers.
 // Never import this file from client code.
 
-import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+// ---- AES-256-GCM token encryption ----
+//
+// OAuth access/refresh tokens are stored as ciphertext using AES-256-GCM with
+// a 12-byte random IV and 16-byte auth tag. The wire format written to the
+// database is:
+//
+//     enc:v1:<iv_b64url>:<tag_b64url>:<ct_b64url>
+//
+// Legacy plaintext rows (anything that does not start with "enc:v1:") are
+// returned as-is by decryptToken() and are migrated to ciphertext the next
+// time the token is refreshed.
+
+const TOKEN_ENC_PREFIX = "enc:v1:";
+
+function getTokenEncryptionKey(): Buffer {
+  const raw = process.env.INTUIT_TOKEN_ENCRYPTION_KEY;
+  if (!raw) throw new Error("Missing INTUIT_TOKEN_ENCRYPTION_KEY");
+  // Accept either base64 (preferred, 44 chars) or hex (64 chars) for 32 bytes.
+  const trimmed = raw.trim();
+  let key: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+    key = Buffer.from(trimmed, "hex");
+  } else {
+    key = Buffer.from(trimmed, "base64");
+  }
+  if (key.length !== 32) {
+    throw new Error(
+      `INTUIT_TOKEN_ENCRYPTION_KEY must decode to 32 bytes (got ${key.length}). Generate with: openssl rand -base64 32`,
+    );
+  }
+  return key;
+}
+
+function b64u(buf: Buffer): string {
+  return buf.toString("base64").replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function b64uDecode(s: string): Buffer {
+  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+  return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
+}
+
+export function encryptToken(plain: string): string {
+  const key = getTokenEncryptionKey();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${TOKEN_ENC_PREFIX}${b64u(iv)}:${b64u(tag)}:${b64u(ct)}`;
+}
+
+export function decryptToken(stored: string): string {
+  if (!stored.startsWith(TOKEN_ENC_PREFIX)) {
+    // Legacy plaintext — return as-is; it will be re-saved encrypted on next refresh.
+    return stored;
+  }
+  const parts = stored.slice(TOKEN_ENC_PREFIX.length).split(":");
+  if (parts.length !== 3) throw new Error("Malformed encrypted token");
+  const [ivB64, tagB64, ctB64] = parts;
+  const key = getTokenEncryptionKey();
+  const decipher = createDecipheriv("aes-256-gcm", key, b64uDecode(ivB64));
+  decipher.setAuthTag(b64uDecode(tagB64));
+  const pt = Buffer.concat([decipher.update(b64uDecode(ctB64)), decipher.final()]);
+  return pt.toString("utf8");
+}
+
+// ---- Cloudflare Turnstile verification ----
+//
+// All endpoints that submit payment data (tokenize, charge, refund) require a
+// Turnstile token from the browser. We verify it server-side against
+// Cloudflare's siteverify endpoint. Fails closed if the secret is missing.
+
+export async function verifyTurnstile(token: string, remoteIp?: string | null): Promise<void> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) throw new Error("CAPTCHA is not configured (TURNSTILE_SECRET_KEY missing)");
+  if (!token) throw new Error("Missing CAPTCHA token");
+  const body = new URLSearchParams({ secret, response: token });
+  if (remoteIp) body.set("remoteip", remoteIp);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const json = (await res.json().catch(() => null)) as
+    | { success: boolean; "error-codes"?: string[] }
+    | null;
+  if (!json?.success) {
+    const codes = json?.["error-codes"]?.join(",") ?? "unknown";
+    throw new Error(`CAPTCHA verification failed (${codes})`);
+  }
+}
+
+export function getTurnstileSiteKey(): string {
+  return process.env.TURNSTILE_SITE_KEY ?? "";
+}
 
 export const INTUIT_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
 export const INTUIT_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
