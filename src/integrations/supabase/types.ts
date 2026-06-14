@@ -1023,7 +1023,13 @@ export type Database = {
           intuit_refund_id: string | null
           payment_method_id: string | null
           provider: string
+          receipt_email: string | null
+          receipt_sent_at: string | null
+          receipt_token: string
           refunded_amount_cents: number
+          salon_address: string | null
+          salon_name: string | null
+          salon_phone: string | null
           status: string
           updated_at: string
         }
@@ -1040,7 +1046,13 @@ export type Database = {
           intuit_refund_id?: string | null
           payment_method_id?: string | null
           provider?: string
+          receipt_email?: string | null
+          receipt_sent_at?: string | null
+          receipt_token?: string
           refunded_amount_cents?: number
+          salon_address?: string | null
+          salon_name?: string | null
+          salon_phone?: string | null
           status: string
           updated_at?: string
         }
@@ -1057,7 +1069,13 @@ export type Database = {
           intuit_refund_id?: string | null
           payment_method_id?: string | null
           provider?: string
+          receipt_email?: string | null
+          receipt_sent_at?: string | null
+          receipt_token?: string
           refunded_amount_cents?: number
+          salon_address?: string | null
+          salon_name?: string | null
+          salon_phone?: string | null
           status?: string
           updated_at?: string
         }
