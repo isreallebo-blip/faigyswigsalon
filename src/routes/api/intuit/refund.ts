@@ -19,10 +19,11 @@ export const Route = createFileRoute("/api/intuit/refund")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
+          await verifyTurnstile(body.turnstileToken, request.headers.get("cf-connecting-ip"));
 
           const { data: tx, error: txErr } = await supabaseAdmin
             .from("payment_transactions")
