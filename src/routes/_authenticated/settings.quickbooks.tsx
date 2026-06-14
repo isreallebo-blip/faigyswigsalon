@@ -3,11 +3,12 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Link2, Plug, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
+import { Link2, Plug, RefreshCw, ShieldCheck, Unplug, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,6 +138,16 @@ function QuickBooksSettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {connected && typeof s?.refreshTokenExpiresInDays === "number" && s.refreshTokenExpiresInDays <= 14 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Connection expiring soon</AlertTitle>
+              <AlertDescription>
+                QuickBooks Payments connection is close to expiring. Please click Refresh token or reconnect.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Environment</div>
@@ -223,6 +234,9 @@ function QuickBooksSettingsPage() {
           <p>
             OAuth tokens are stored server-side and refreshed automatically. Only admins can
             connect, disconnect, test, or refresh the connection.
+          </p>
+          <p>
+            QuickBooks tokens refresh automatically during normal payment activity. Reconnect is only needed if the connection is idle for over 100 days, disconnected, or revoked.
           </p>
         </CardContent>
       </Card>
