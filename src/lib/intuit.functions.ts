@@ -274,7 +274,7 @@ export const refundCharge = createServerFn({ method: "POST" })
   .inputValidator((d) => RefundInput.parse(d))
   .handler(async ({ data, context: _context }) => {
     void _context;
-    const { paymentsFetch, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
+    const { paymentsFetchWithMeta, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
     await verifyTurnstile(data.turnstileToken);
     const { data: tx, error: txErr } = await supabaseAdmin
       .from("payment_transactions")
@@ -289,7 +289,7 @@ export const refundCharge = createServerFn({ method: "POST" })
     const amount = (refundCents / 100).toFixed(2);
     const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, data.userAgent ?? null);
 
-    const refund = await paymentsFetch<{ id: string; amount: string; created: string }>(
+    const { data: refund, meta } = await paymentsFetchWithMeta<{ id: string; amount: string; created: string }>(
       `/quickbooks/v4/payments/charges/${encodeURIComponent(tx.intuit_charge_id)}/refunds`,
       {
         method: "POST",
@@ -307,12 +307,13 @@ export const refundCharge = createServerFn({ method: "POST" })
       .from("payment_transactions")
       .update({
         intuit_refund_id: refund.id,
+        intuit_tid: meta.intuitTid,
         refunded_amount_cents: newRefunded,
         status: newStatus,
       })
       .eq("id", tx.id);
     if (error) throw error;
-    return { ok: true, refund };
+    return { ok: true, refund, intuitTid: meta.intuitTid };
   });
 
 export const listClientPaymentMethods = createServerFn({ method: "POST" })
