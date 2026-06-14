@@ -474,22 +474,53 @@ function newRequestId(): string {
   return crypto.randomUUID();
 }
 
-export async function paymentsFetch<T = unknown>(
+// Error subclass that exposes Intuit's `intuit_tid` trace ID and HTTP status
+// so callers (and Intuit support tickets) can correlate failures.
+export class IntuitApiError extends Error {
+  intuitTid: string | null;
+  status: number;
+  requestId: string;
+  constructor(message: string, opts: { intuitTid: string | null; status: number; requestId: string }) {
+    super(message);
+    this.name = "IntuitApiError";
+    this.intuitTid = opts.intuitTid;
+    this.status = opts.status;
+    this.requestId = opts.requestId;
+  }
+}
+
+export interface PaymentsFetchMeta {
+  intuitTid: string | null;
+  status: number;
+  requestId: string;
+}
+
+// Same as paymentsFetch but also returns the Intuit `intuit_tid` trace ID and
+// HTTP status so callers can persist them on transaction rows and surface
+// them to the UI for support tickets.
+export async function paymentsFetchWithMeta<T = unknown>(
   path: string,
   init: { method?: "GET" | "POST" | "DELETE"; body?: unknown; requestId?: string } = {},
-): Promise<T> {
+): Promise<{ data: T; meta: PaymentsFetchMeta }> {
   const conn = await getValidConnection();
+  const method = init.method ?? "GET";
+  const requestId = init.requestId ?? newRequestId();
   const url = `${getPaymentsBaseUrl(conn.environment)}${path}`;
   const res = await fetch(url, {
-    method: init.method ?? "GET",
+    method,
     headers: {
       Authorization: `Bearer ${conn.access_token}`,
       Accept: "application/json",
       "Content-Type": "application/json",
-      "request-Id": init.requestId ?? newRequestId(),
+      "request-Id": requestId,
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
+
+  // Intuit returns its trace identifier as the `intuit_tid` response header.
+  // Capture it for every call (success or failure) so it can be logged,
+  // persisted on transaction rows, and shown to staff for support tickets.
+  const intuitTid = res.headers.get("intuit_tid") ?? null;
   const text = await res.text();
   let parsed: unknown = null;
   try {
@@ -497,14 +528,37 @@ export async function paymentsFetch<T = unknown>(
   } catch {
     parsed = text;
   }
+
   if (!res.ok) {
-    const message =
+    const errBody =
       (parsed && typeof parsed === "object" && "errors" in parsed
         ? JSON.stringify((parsed as { errors: unknown }).errors)
         : null) ?? text ?? `HTTP ${res.status}`;
-    throw new Error(`Intuit Payments ${res.status}: ${message}`);
+    // Log failure with full Intuit trace context.
+    console.error(
+      `[intuit-payments] FAIL ${method} ${path} status=${res.status} intuit_tid=${intuitTid ?? "none"} request-id=${requestId} body=${errBody}`,
+    );
+    throw new IntuitApiError(
+      `Intuit Payments ${res.status}: ${errBody} (intuit_tid=${intuitTid ?? "none"})`,
+      { intuitTid, status: res.status, requestId },
+    );
   }
-  return parsed as T;
+
+  // Log success too — Intuit support requires intuit_tid for any
+  // post-hoc investigation, including disputes over successful charges.
+  console.log(
+    `[intuit-payments] OK ${method} ${path} status=${res.status} intuit_tid=${intuitTid ?? "none"} request-id=${requestId}`,
+  );
+
+  return { data: parsed as T, meta: { intuitTid, status: res.status, requestId } };
+}
+
+export async function paymentsFetch<T = unknown>(
+  path: string,
+  init: { method?: "GET" | "POST" | "DELETE"; body?: unknown; requestId?: string } = {},
+): Promise<T> {
+  const { data } = await paymentsFetchWithMeta<T>(path, init);
+  return data;
 }
 
 // ---- Role check helper for HTTP routes that aren't backed by serverFn middleware ----

@@ -1,0 +1,2 @@
+ALTER TABLE public.payment_transactions ADD COLUMN IF NOT EXISTS intuit_tid text;
+CREATE INDEX IF NOT EXISTS payment_transactions_intuit_tid_idx ON public.payment_transactions (intuit_tid) WHERE intuit_tid IS NOT NULL;
