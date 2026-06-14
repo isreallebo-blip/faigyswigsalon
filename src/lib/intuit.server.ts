@@ -8,6 +8,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "crypto";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ---- AES-256-GCM token encryption ----
