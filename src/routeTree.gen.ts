@@ -42,7 +42,14 @@ import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/
 import { Route as ApiPublicResendInboundRouteImport } from './routes/api/public/resend-inbound'
 import { Route as ApiPublicResendEventsRouteImport } from './routes/api/public/resend-events'
 import { Route as ApiPublicConfirmEmailChangeRouteImport } from './routes/api/public/confirm-email-change'
+import { Route as ApiIntuitTokenizeCardRouteImport } from './routes/api/intuit/tokenize-card'
+import { Route as ApiIntuitRefundRouteImport } from './routes/api/intuit/refund'
+import { Route as ApiIntuitRefreshTokenRouteImport } from './routes/api/intuit/refresh-token'
+import { Route as ApiIntuitConnectRouteImport } from './routes/api/intuit/connect'
+import { Route as ApiIntuitChargeCardRouteImport } from './routes/api/intuit/charge-card'
+import { Route as ApiIntuitCallbackRouteImport } from './routes/api/intuit/callback'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
+import { Route as AuthenticatedSettingsQuickbooksRouteImport } from './routes/_authenticated/settings.quickbooks'
 import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
@@ -217,10 +224,46 @@ const ApiPublicConfirmEmailChangeRoute =
     path: '/api/public/confirm-email-change',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiIntuitTokenizeCardRoute = ApiIntuitTokenizeCardRouteImport.update({
+  id: '/api/intuit/tokenize-card',
+  path: '/api/intuit/tokenize-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIntuitRefundRoute = ApiIntuitRefundRouteImport.update({
+  id: '/api/intuit/refund',
+  path: '/api/intuit/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIntuitRefreshTokenRoute = ApiIntuitRefreshTokenRouteImport.update({
+  id: '/api/intuit/refresh-token',
+  path: '/api/intuit/refresh-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIntuitConnectRoute = ApiIntuitConnectRouteImport.update({
+  id: '/api/intuit/connect',
+  path: '/api/intuit/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIntuitChargeCardRoute = ApiIntuitChargeCardRouteImport.update({
+  id: '/api/intuit/charge-card',
+  path: '/api/intuit/charge-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIntuitCallbackRoute = ApiIntuitCallbackRouteImport.update({
+  id: '/api/intuit/callback',
+  path: '/api/intuit/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSettingsUsersRoute =
   AuthenticatedSettingsUsersRouteImport.update({
     id: '/users',
     path: '/users',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsQuickbooksRoute =
+  AuthenticatedSettingsQuickbooksRouteImport.update({
+    id: '/quickbooks',
+    path: '/quickbooks',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsClientPortalRoute =
@@ -287,7 +330,14 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/intuit/callback': typeof ApiIntuitCallbackRoute
+  '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
+  '/api/intuit/connect': typeof ApiIntuitConnectRoute
+  '/api/intuit/refresh-token': typeof ApiIntuitRefreshTokenRoute
+  '/api/intuit/refund': typeof ApiIntuitRefundRoute
+  '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
@@ -326,7 +376,14 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/intuit/callback': typeof ApiIntuitCallbackRoute
+  '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
+  '/api/intuit/connect': typeof ApiIntuitConnectRoute
+  '/api/intuit/refresh-token': typeof ApiIntuitRefreshTokenRoute
+  '/api/intuit/refund': typeof ApiIntuitRefundRoute
+  '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
@@ -369,7 +426,14 @@ export interface FileRoutesById {
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/_authenticated/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/api/intuit/callback': typeof ApiIntuitCallbackRoute
+  '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
+  '/api/intuit/connect': typeof ApiIntuitConnectRoute
+  '/api/intuit/refresh-token': typeof ApiIntuitRefreshTokenRoute
+  '/api/intuit/refund': typeof ApiIntuitRefundRoute
+  '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
@@ -412,7 +476,14 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
+    | '/settings/quickbooks'
     | '/settings/users'
+    | '/api/intuit/callback'
+    | '/api/intuit/charge-card'
+    | '/api/intuit/connect'
+    | '/api/intuit/refresh-token'
+    | '/api/intuit/refund'
+    | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
@@ -451,7 +522,14 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
+    | '/settings/quickbooks'
     | '/settings/users'
+    | '/api/intuit/callback'
+    | '/api/intuit/charge-card'
+    | '/api/intuit/connect'
+    | '/api/intuit/refresh-token'
+    | '/api/intuit/refund'
+    | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
@@ -493,7 +571,14 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/client-portal'
+    | '/_authenticated/settings/quickbooks'
     | '/_authenticated/settings/users'
+    | '/api/intuit/callback'
+    | '/api/intuit/charge-card'
+    | '/api/intuit/connect'
+    | '/api/intuit/refresh-token'
+    | '/api/intuit/refund'
+    | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
@@ -512,6 +597,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PortalRoute: typeof PortalRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiIntuitCallbackRoute: typeof ApiIntuitCallbackRoute
+  ApiIntuitChargeCardRoute: typeof ApiIntuitChargeCardRoute
+  ApiIntuitConnectRoute: typeof ApiIntuitConnectRoute
+  ApiIntuitRefreshTokenRoute: typeof ApiIntuitRefreshTokenRoute
+  ApiIntuitRefundRoute: typeof ApiIntuitRefundRoute
+  ApiIntuitTokenizeCardRoute: typeof ApiIntuitTokenizeCardRoute
   ApiPublicConfirmEmailChangeRoute: typeof ApiPublicConfirmEmailChangeRoute
   ApiPublicResendEventsRoute: typeof ApiPublicResendEventsRoute
   ApiPublicResendInboundRoute: typeof ApiPublicResendInboundRoute
@@ -756,11 +847,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicConfirmEmailChangeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/intuit/tokenize-card': {
+      id: '/api/intuit/tokenize-card'
+      path: '/api/intuit/tokenize-card'
+      fullPath: '/api/intuit/tokenize-card'
+      preLoaderRoute: typeof ApiIntuitTokenizeCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/intuit/refund': {
+      id: '/api/intuit/refund'
+      path: '/api/intuit/refund'
+      fullPath: '/api/intuit/refund'
+      preLoaderRoute: typeof ApiIntuitRefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/intuit/refresh-token': {
+      id: '/api/intuit/refresh-token'
+      path: '/api/intuit/refresh-token'
+      fullPath: '/api/intuit/refresh-token'
+      preLoaderRoute: typeof ApiIntuitRefreshTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/intuit/connect': {
+      id: '/api/intuit/connect'
+      path: '/api/intuit/connect'
+      fullPath: '/api/intuit/connect'
+      preLoaderRoute: typeof ApiIntuitConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/intuit/charge-card': {
+      id: '/api/intuit/charge-card'
+      path: '/api/intuit/charge-card'
+      fullPath: '/api/intuit/charge-card'
+      preLoaderRoute: typeof ApiIntuitChargeCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/intuit/callback': {
+      id: '/api/intuit/callback'
+      path: '/api/intuit/callback'
+      fullPath: '/api/intuit/callback'
+      preLoaderRoute: typeof ApiIntuitCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/users': {
       id: '/_authenticated/settings/users'
       path: '/users'
       fullPath: '/settings/users'
       preLoaderRoute: typeof AuthenticatedSettingsUsersRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/quickbooks': {
+      id: '/_authenticated/settings/quickbooks'
+      path: '/quickbooks'
+      fullPath: '/settings/quickbooks'
+      preLoaderRoute: typeof AuthenticatedSettingsQuickbooksRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/client-portal': {
@@ -812,6 +952,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsCalendarRoute: typeof AuthenticatedSettingsCalendarRoute
   AuthenticatedSettingsClientPortalRoute: typeof AuthenticatedSettingsClientPortalRoute
+  AuthenticatedSettingsQuickbooksRoute: typeof AuthenticatedSettingsQuickbooksRoute
   AuthenticatedSettingsUsersRoute: typeof AuthenticatedSettingsUsersRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
@@ -821,6 +962,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsCalendarRoute: AuthenticatedSettingsCalendarRoute,
   AuthenticatedSettingsClientPortalRoute:
     AuthenticatedSettingsClientPortalRoute,
+  AuthenticatedSettingsQuickbooksRoute: AuthenticatedSettingsQuickbooksRoute,
   AuthenticatedSettingsUsersRoute: AuthenticatedSettingsUsersRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
@@ -897,6 +1039,12 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PortalRoute: PortalRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiIntuitCallbackRoute: ApiIntuitCallbackRoute,
+  ApiIntuitChargeCardRoute: ApiIntuitChargeCardRoute,
+  ApiIntuitConnectRoute: ApiIntuitConnectRoute,
+  ApiIntuitRefreshTokenRoute: ApiIntuitRefreshTokenRoute,
+  ApiIntuitRefundRoute: ApiIntuitRefundRoute,
+  ApiIntuitTokenizeCardRoute: ApiIntuitTokenizeCardRoute,
   ApiPublicConfirmEmailChangeRoute: ApiPublicConfirmEmailChangeRoute,
   ApiPublicResendEventsRoute: ApiPublicResendEventsRoute,
   ApiPublicResendInboundRoute: ApiPublicResendInboundRoute,
