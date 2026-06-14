@@ -20,10 +20,11 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { userId } = await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
+          await verifyTurnstile(body.turnstileToken, request.headers.get("cf-connecting-ip"));
 
           const { data: pm, error: pmErr } = await supabaseAdmin
             .from("payment_methods")
