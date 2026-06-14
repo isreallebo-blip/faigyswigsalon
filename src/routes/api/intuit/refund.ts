@@ -19,8 +19,9 @@ export const Route = createFileRoute("/api/intuit/refund")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        let intuitTidForError: string | null = null;
         try {
-          const { requireBearerStaff, paymentsFetch, verifyTurnstile, buildPaymentContextFromRequest } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetchWithMeta, verifyTurnstile, buildPaymentContextFromRequest, IntuitApiError } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
@@ -40,17 +41,26 @@ export const Route = createFileRoute("/api/intuit/refund")({
           const amount = (refundCents / 100).toFixed(2);
           const paymentContext = buildPaymentContextFromRequest(request, body.deviceId ?? null);
 
-          const refund = await paymentsFetch<{ id: string; amount: string }>(
-            `/quickbooks/v4/payments/charges/${encodeURIComponent(tx.intuit_charge_id)}/refunds`,
-            {
-              method: "POST",
-              body: {
-                amount,
-                description: body.description ?? "Refund",
-                context: paymentContext,
+          let refund: { id: string; amount: string };
+          let intuitTid: string | null = null;
+          try {
+            const result = await paymentsFetchWithMeta<{ id: string; amount: string }>(
+              `/quickbooks/v4/payments/charges/${encodeURIComponent(tx.intuit_charge_id)}/refunds`,
+              {
+                method: "POST",
+                body: {
+                  amount,
+                  description: body.description ?? "Refund",
+                  context: paymentContext,
+                },
               },
-            },
-          );
+            );
+            refund = result.data;
+            intuitTid = result.meta.intuitTid;
+          } catch (e) {
+            intuitTidForError = e instanceof IntuitApiError ? e.intuitTid : null;
+            throw e;
+          }
 
           const newRefunded = tx.refunded_amount_cents + refundCents;
           const newStatus = newRefunded >= tx.amount_cents ? "refunded" : "partially_refunded";
@@ -58,20 +68,24 @@ export const Route = createFileRoute("/api/intuit/refund")({
             .from("payment_transactions")
             .update({
               intuit_refund_id: refund.id,
+              intuit_tid: intuitTid,
               refunded_amount_cents: newRefunded,
               status: newStatus,
             })
             .eq("id", tx.id);
           if (error) throw error;
 
-          return new Response(JSON.stringify({ ok: true, refund }), {
+          return new Response(JSON.stringify({ ok: true, refund, intuitTid }), {
             status: 200,
             headers: JSON_HEADERS,
           });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "error";
           const status = msg === "Unauthorized" ? 401 : msg === "Forbidden" ? 403 : 400;
-          return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: JSON_HEADERS });
+          return new Response(
+            JSON.stringify({ ok: false, error: msg, intuitTid: intuitTidForError }),
+            { status, headers: JSON_HEADERS },
+          );
         }
       },
     },
