@@ -180,11 +180,6 @@ export function buildPaymentContextFromServerFn(
   let ip: string | undefined;
   let ua: string | undefined = userAgent ?? undefined;
   try {
-    // Lazy require so this file stays importable from non-handler contexts.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getRequestHeader } = require("@tanstack/react-start/server") as {
-      getRequestHeader: (n: string) => string | undefined;
-    };
     ip =
       getRequestHeader("cf-connecting-ip") ||
       getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
