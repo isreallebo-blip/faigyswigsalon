@@ -13,6 +13,7 @@ const InputSchema = z.object({
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
 });
 
 export const Route = createFileRoute("/api/intuit/charge-card")({
