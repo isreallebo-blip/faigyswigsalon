@@ -1021,6 +1021,7 @@ export type Database = {
           id: string
           intuit_charge_id: string | null
           intuit_refund_id: string | null
+          intuit_tid: string | null
           payment_method_id: string | null
           provider: string
           receipt_email: string | null
@@ -1044,6 +1045,7 @@ export type Database = {
           id?: string
           intuit_charge_id?: string | null
           intuit_refund_id?: string | null
+          intuit_tid?: string | null
           payment_method_id?: string | null
           provider?: string
           receipt_email?: string | null
@@ -1067,6 +1069,7 @@ export type Database = {
           id?: string
           intuit_charge_id?: string | null
           intuit_refund_id?: string | null
+          intuit_tid?: string | null
           payment_method_id?: string | null
           provider?: string
           receipt_email?: string | null
