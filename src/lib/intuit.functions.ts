@@ -194,7 +194,7 @@ export const chargeCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => ChargeInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { paymentsFetch, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
+    const { paymentsFetchWithMeta, verifyTurnstile, buildPaymentContextFromServerFn, IntuitApiError } = await import("@/lib/intuit.server");
     await verifyTurnstile(data.turnstileToken);
     const { data: pm, error: pmErr } = await supabaseAdmin
       .from("payment_methods")
@@ -207,7 +207,7 @@ export const chargeCard = createServerFn({ method: "POST" })
     const amount = (data.amountCents / 100).toFixed(2);
     const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, data.userAgent ?? null);
     try {
-      const charge = await paymentsFetch<{
+      const { data: charge, meta } = await paymentsFetchWithMeta<{
         id: string;
         status: string;
         amount: string;
@@ -233,6 +233,7 @@ export const chargeCard = createServerFn({ method: "POST" })
           amount_cents: data.amountCents,
           currency: data.currency,
           intuit_charge_id: charge.id,
+          intuit_tid: meta.intuitTid,
           status: charge.status,
           description: data.description ?? null,
           created_by: context.userId,
@@ -241,14 +242,16 @@ export const chargeCard = createServerFn({ method: "POST" })
         .select("*")
         .single();
       if (error) throw error;
-      return { ok: true, charge, transaction: row };
+      return { ok: true, charge, transaction: row, intuitTid: meta.intuitTid };
     } catch (e) {
+      const tid = e instanceof IntuitApiError ? e.intuitTid : null;
       await supabaseAdmin.from("payment_transactions").insert({
         client_id: pm.client_id,
         payment_method_id: pm.id,
         amount_cents: data.amountCents,
         currency: data.currency,
         status: "failed",
+        intuit_tid: tid,
         description: data.description ?? null,
         error_message: e instanceof Error ? e.message : String(e),
         created_by: context.userId,
