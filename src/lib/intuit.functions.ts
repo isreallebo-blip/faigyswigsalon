@@ -22,12 +22,20 @@ export const getIntuitStatus = createServerFn({ method: "GET" })
       .select("realm_id, environment, access_token_expires_at, refresh_token_expires_at, connected_by, created_at, updated_at")
       .eq("provider", "intuit_payments")
       .maybeSingle();
+    const now = Date.now();
+    const refreshExpiresAt = data?.refresh_token_expires_at
+      ? new Date(data.refresh_token_expires_at).getTime()
+      : null;
+    const refreshTokenExpiresInDays = refreshExpiresAt
+      ? Math.max(0, Math.ceil((refreshExpiresAt - now) / (1000 * 60 * 60 * 24)))
+      : null;
     return {
       connected: !!data,
       realmId: data?.realm_id ?? null,
       environment: data?.environment ?? (process.env.INTUIT_ENVIRONMENT ?? "sandbox"),
       accessTokenExpiresAt: data?.access_token_expires_at ?? null,
       refreshTokenExpiresAt: data?.refresh_token_expires_at ?? null,
+      refreshTokenExpiresInDays,
       connectedBy: data?.connected_by ?? null,
       updatedAt: data?.updated_at ?? null,
     };
