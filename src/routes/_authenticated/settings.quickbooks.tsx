@@ -235,6 +235,9 @@ function QuickBooksSettingsPage() {
             OAuth tokens are stored server-side and refreshed automatically. Only admins can
             connect, disconnect, test, or refresh the connection.
           </p>
+          <p>
+            QuickBooks tokens refresh automatically during normal payment activity. Reconnect is only needed if the connection is idle for over 100 days, disconnected, or revoked.
+          </p>
         </CardContent>
       </Card>
     </div>
