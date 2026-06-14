@@ -12,6 +12,7 @@ const InputSchema = z.object({
   currency: z.string().length(3).default("USD"),
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
 });
 
 export const Route = createFileRoute("/api/intuit/charge-card")({
@@ -19,10 +20,11 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { userId } = await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
+          await verifyTurnstile(body.turnstileToken, request.headers.get("cf-connecting-ip"));
 
           const { data: pm, error: pmErr } = await supabaseAdmin
             .from("payment_methods")

@@ -11,6 +11,7 @@ const InputSchema = z.object({
   transactionId: z.string().uuid(),
   amountCents: z.number().int().positive().max(99_999_999).optional(),
   description: z.string().trim().max(500).optional().nullable(),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
 });
 
 export const Route = createFileRoute("/api/intuit/refund")({
@@ -18,10 +19,11 @@ export const Route = createFileRoute("/api/intuit/refund")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
+          await verifyTurnstile(body.turnstileToken, request.headers.get("cf-connecting-ip"));
 
           const { data: tx, error: txErr } = await supabaseAdmin
             .from("payment_transactions")
