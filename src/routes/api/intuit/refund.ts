@@ -12,6 +12,7 @@ const InputSchema = z.object({
   amountCents: z.number().int().positive().max(99_999_999).optional(),
   description: z.string().trim().max(500).optional().nullable(),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
 });
 
 export const Route = createFileRoute("/api/intuit/refund")({
