@@ -105,9 +105,17 @@ export const testIntuitConnection = createServerFn({ method: "POST" })
 
 // ---- Saved cards / charges / refunds (callable from the staff UI) ----
 
+// Turnstile site key for the browser widget. Publishable, server-fetched
+// because Lovable does not let us write `VITE_TURNSTILE_*` runtime secrets.
+export const getTurnstilePublicConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const { getTurnstileSiteKey } = await import("@/lib/intuit.server");
+  return { siteKey: getTurnstileSiteKey() };
+});
+
 const SaveTokenInput = z.object({
   clientId: z.string().uuid(),
   cardToken: z.string().min(8).max(2048),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
   cardholderName: z.string().trim().max(200).optional().nullable(),
   customerEmail: z.string().trim().email().max(255).optional().nullable(),
   cardBrand: z.string().trim().max(40).optional().nullable(),
@@ -121,10 +129,9 @@ export const saveTokenizedCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => SaveTokenInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { paymentsFetch, getValidConnection } = await import("@/lib/intuit.server");
+    const { paymentsFetch, getValidConnection, verifyTurnstile } = await import("@/lib/intuit.server");
+    await verifyTurnstile(data.turnstileToken);
     const conn = await getValidConnection();
-    // Vault the one-time card token against the company (realmId) so it can
-    // be charged later without re-collecting the card data.
     const vaulted = await paymentsFetch<{
       id: string;
       number?: string;
@@ -178,16 +185,18 @@ const ChargeInput = z.object({
   currency: z.string().length(3).default("USD"),
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
 });
 
 export const chargeCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => ChargeInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { paymentsFetch } = await import("@/lib/intuit.server");
+    const { paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+    await verifyTurnstile(data.turnstileToken);
     const { data: pm, error: pmErr } = await supabaseAdmin
       .from("payment_methods")
-      .select("id, client_id, intuit_payment_method_id")
+      .select("id, client_id, intuit_payment_method_id, last4, card_brand")
       .eq("id", data.paymentMethodId)
       .maybeSingle();
     if (pmErr) throw pmErr;
@@ -224,6 +233,7 @@ export const chargeCard = createServerFn({ method: "POST" })
           status: charge.status,
           description: data.description ?? null,
           created_by: context.userId,
+          salon_name: "Faigy's Wig Salon",
         })
         .select("*")
         .single();
@@ -248,6 +258,7 @@ const RefundInput = z.object({
   transactionId: z.string().uuid(),
   amountCents: z.number().int().positive().max(99_999_999).optional(),
   description: z.string().trim().max(500).optional().nullable(),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
 });
 
 export const refundCharge = createServerFn({ method: "POST" })
@@ -255,7 +266,8 @@ export const refundCharge = createServerFn({ method: "POST" })
   .inputValidator((d) => RefundInput.parse(d))
   .handler(async ({ data, context: _context }) => {
     void _context;
-    const { paymentsFetch } = await import("@/lib/intuit.server");
+    const { paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+    await verifyTurnstile(data.turnstileToken);
     const { data: tx, error: txErr } = await supabaseAdmin
       .from("payment_transactions")
       .select("id, amount_cents, refunded_amount_cents, intuit_charge_id")
@@ -319,3 +331,133 @@ export const listClientTransactions = createServerFn({ method: "POST" })
     if (error) throw error;
     return rows ?? [];
   });
+
+// ---- Receipts ----
+//
+// `getReceiptByToken` is intentionally public (no auth middleware): the
+// receipt URL contains a non-guessable UUID token sent only to the customer.
+// We project only safe display fields — never the Intuit charge/refund IDs.
+
+export const getReceiptByToken = createServerFn({ method: "GET" })
+  .inputValidator((d) => z.object({ token: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: tx, error } = await supabaseAdmin
+      .from("payment_transactions")
+      .select(
+        "id, created_at, amount_cents, currency, status, description, refunded_amount_cents, salon_name, salon_address, salon_phone, payment_method_id, client_id",
+      )
+      .eq("receipt_token", data.token)
+      .maybeSingle();
+    if (error) throw error;
+    if (!tx) return null;
+    const [{ data: pm }, { data: client }] = await Promise.all([
+      tx.payment_method_id
+        ? supabaseAdmin
+            .from("payment_methods")
+            .select("card_brand, last4")
+            .eq("id", tx.payment_method_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      tx.client_id
+        ? supabaseAdmin
+            .from("clients")
+            .select("full_name")
+            .eq("id", tx.client_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    return {
+      id: tx.id,
+      createdAt: tx.created_at,
+      amountCents: tx.amount_cents,
+      currency: tx.currency,
+      status: tx.status,
+      description: tx.description,
+      refundedCents: tx.refunded_amount_cents,
+      salonName: tx.salon_name ?? "Faigy's Wig Salon",
+      salonAddress: tx.salon_address,
+      salonPhone: tx.salon_phone,
+      cardBrand: pm?.card_brand ?? null,
+      last4: pm?.last4 ?? null,
+      clientName: client?.full_name ?? null,
+    };
+  });
+
+export const emailPaymentReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        transactionId: z.string().uuid(),
+        email: z.string().trim().email().max(255),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { data: tx, error } = await supabaseAdmin
+      .from("payment_transactions")
+      .select(
+        "id, created_at, amount_cents, currency, status, description, client_id, receipt_token, salon_name",
+      )
+      .eq("id", data.transactionId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!tx) throw new Error("Transaction not found");
+    if (!tx.client_id) throw new Error("Transaction has no client");
+
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("full_name, display_id")
+      .eq("id", tx.client_id)
+      .maybeSingle();
+
+    const amountStr = `$${(tx.amount_cents / 100).toFixed(2)}`;
+    const dateStr = new Date(tx.created_at).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const origin =
+      process.env.APP_PUBLIC_ORIGIN ??
+      `https://${process.env.VITE_PROJECT_DOMAIN ?? "faigyswigsalon.com"}`;
+    const receiptLink = `${origin}/receipt/${tx.receipt_token}`;
+
+    const { sendNotification } = await import("@/lib/notifications/send.server");
+    const result = await sendNotification({
+      clientId: tx.client_id,
+      templateKey: "payment_receipt",
+      idempotencyKey: `card-receipt-${tx.id}`,
+      receiptData: {
+        clientName: client?.full_name ?? "",
+        cltId: client?.display_id ?? "",
+        date: dateStr,
+        hebrewDate: "",
+        amount: amountStr,
+        method: "Credit card",
+        description: tx.description ?? `View full receipt: ${receiptLink}`,
+      },
+    }).catch((e: unknown) => ({ ok: false, error: e instanceof Error ? e.message : String(e) }));
+
+    await supabaseAdmin
+      .from("payment_transactions")
+      .update({ receipt_email: data.email, receipt_sent_at: new Date().toISOString() })
+      .eq("id", tx.id);
+
+    return { ok: true, receiptLink, notification: result };
+  });
+
+export const listRecentCharges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("payment_transactions")
+      .select(
+        "id, created_at, amount_cents, currency, status, description, receipt_token, receipt_sent_at, receipt_email, client_id, payment_method_id, refunded_amount_cents",
+      )
+      .order("created_at", { ascending: false })
+      .limit(25);
+    if (error) throw error;
+    return data ?? [];
+  });
+
