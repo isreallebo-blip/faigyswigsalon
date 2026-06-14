@@ -186,13 +186,15 @@ const ChargeInput = z.object({
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
+  userAgent: z.string().trim().max(512).optional().nullable(),
 });
 
 export const chargeCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => ChargeInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+    const { paymentsFetch, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
     await verifyTurnstile(data.turnstileToken);
     const { data: pm, error: pmErr } = await supabaseAdmin
       .from("payment_methods")
@@ -203,6 +205,7 @@ export const chargeCard = createServerFn({ method: "POST" })
     if (!pm) throw new Error("Saved card not found");
 
     const amount = (data.amountCents / 100).toFixed(2);
+    const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, data.userAgent ?? null);
     try {
       const charge = await paymentsFetch<{
         id: string;
@@ -217,7 +220,7 @@ export const chargeCard = createServerFn({ method: "POST" })
           amount,
           currency: data.currency,
           capture: data.capture,
-          context: { mobile: "false", isEcommerce: "true" },
+          context: paymentContext,
           ...(data.description ? { description: data.description } : {}),
         },
       });
