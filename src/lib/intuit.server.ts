@@ -279,8 +279,11 @@ export async function loadConnection(): Promise<IntuitConnection | null> {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  // Decrypt tokens on read. Legacy plaintext rows pass through unchanged.
   return {
     ...data,
+    access_token: decryptToken(data.access_token),
+    refresh_token: decryptToken(data.refresh_token),
     environment: (data.environment as IntuitEnv) ?? "sandbox",
   };
 }
@@ -302,8 +305,9 @@ export async function upsertConnection(input: {
       provider: "intuit_payments",
       environment: input.environment,
       realm_id: input.realmId,
-      access_token: input.tokens.access_token,
-      refresh_token: input.tokens.refresh_token,
+      // Encrypted at rest (AES-256-GCM).
+      access_token: encryptToken(input.tokens.access_token),
+      refresh_token: encryptToken(input.tokens.refresh_token),
       token_type: input.tokens.token_type ?? "Bearer",
       scope: getIntuitScope(),
       access_token_expires_at: accessExpires,
@@ -338,8 +342,8 @@ export async function getValidConnection(): Promise<IntuitConnection> {
   const { error } = await supabaseAdmin
     .from("intuit_connections")
     .update({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token),
       access_token_expires_at: accessExpires,
       refresh_token_expires_at: refreshExpires,
     })
@@ -361,8 +365,8 @@ export async function forceRefreshConnection(): Promise<IntuitConnection> {
   const { error } = await supabaseAdmin
     .from("intuit_connections")
     .update({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token),
       access_token_expires_at: accessExpires,
       refresh_token_expires_at: refreshExpires,
     })
@@ -370,6 +374,7 @@ export async function forceRefreshConnection(): Promise<IntuitConnection> {
   if (error) throw error;
   return { ...conn, access_token: tokens.access_token, refresh_token: tokens.refresh_token, access_token_expires_at: accessExpires };
 }
+
 
 // ---- Authenticated Payments API requests ----
 
