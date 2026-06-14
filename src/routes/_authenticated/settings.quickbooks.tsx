@@ -138,6 +138,16 @@ function QuickBooksSettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {connected && typeof s?.refreshTokenExpiresInDays === "number" && s.refreshTokenExpiresInDays <= 14 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Connection expiring soon</AlertTitle>
+              <AlertDescription>
+                QuickBooks Payments connection is close to expiring. Please click Refresh token or reconnect.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Environment</div>
