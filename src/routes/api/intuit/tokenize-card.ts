@@ -27,6 +27,7 @@ const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 const InputSchema = z.object({
   clientId: z.string().uuid(),
   cardToken: z.string().min(8).max(2048),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
   cardholderName: z.string().trim().max(200).optional().nullable(),
   customerEmail: z.string().trim().email().max(255).optional().nullable(),
   cardBrand: z.string().trim().max(40).optional().nullable(),
