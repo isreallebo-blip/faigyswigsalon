@@ -12,6 +12,7 @@ const InputSchema = z.object({
   amountCents: z.number().int().positive().max(99_999_999).optional(),
   description: z.string().trim().max(500).optional().nullable(),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
 });
 
 export const Route = createFileRoute("/api/intuit/refund")({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/intuit/refund")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile, buildPaymentContextFromRequest } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/api/intuit/refund")({
             body.amountCents ?? tx.amount_cents - tx.refunded_amount_cents;
           if (refundCents <= 0) throw new Error("Nothing left to refund");
           const amount = (refundCents / 100).toFixed(2);
+          const paymentContext = buildPaymentContextFromRequest(request, body.deviceId ?? null);
 
           const refund = await paymentsFetch<{ id: string; amount: string }>(
             `/quickbooks/v4/payments/charges/${encodeURIComponent(tx.intuit_charge_id)}/refunds`,
@@ -45,7 +47,7 @@ export const Route = createFileRoute("/api/intuit/refund")({
               body: {
                 amount,
                 description: body.description ?? "Refund",
-                context: { mobile: "false", isEcommerce: "true" },
+                context: paymentContext,
               },
             },
           );

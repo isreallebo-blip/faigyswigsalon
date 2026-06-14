@@ -186,13 +186,15 @@ const ChargeInput = z.object({
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
+  userAgent: z.string().trim().max(512).optional().nullable(),
 });
 
 export const chargeCard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => ChargeInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+    const { paymentsFetch, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
     await verifyTurnstile(data.turnstileToken);
     const { data: pm, error: pmErr } = await supabaseAdmin
       .from("payment_methods")
@@ -203,6 +205,7 @@ export const chargeCard = createServerFn({ method: "POST" })
     if (!pm) throw new Error("Saved card not found");
 
     const amount = (data.amountCents / 100).toFixed(2);
+    const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, data.userAgent ?? null);
     try {
       const charge = await paymentsFetch<{
         id: string;
@@ -217,7 +220,7 @@ export const chargeCard = createServerFn({ method: "POST" })
           amount,
           currency: data.currency,
           capture: data.capture,
-          context: { mobile: "false", isEcommerce: "true" },
+          context: paymentContext,
           ...(data.description ? { description: data.description } : {}),
         },
       });
@@ -259,6 +262,8 @@ const RefundInput = z.object({
   amountCents: z.number().int().positive().max(99_999_999).optional(),
   description: z.string().trim().max(500).optional().nullable(),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
+  userAgent: z.string().trim().max(512).optional().nullable(),
 });
 
 export const refundCharge = createServerFn({ method: "POST" })
@@ -266,7 +271,7 @@ export const refundCharge = createServerFn({ method: "POST" })
   .inputValidator((d) => RefundInput.parse(d))
   .handler(async ({ data, context: _context }) => {
     void _context;
-    const { paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+    const { paymentsFetch, verifyTurnstile, buildPaymentContextFromServerFn } = await import("@/lib/intuit.server");
     await verifyTurnstile(data.turnstileToken);
     const { data: tx, error: txErr } = await supabaseAdmin
       .from("payment_transactions")
@@ -279,6 +284,7 @@ export const refundCharge = createServerFn({ method: "POST" })
     const refundCents = data.amountCents ?? tx.amount_cents - tx.refunded_amount_cents;
     if (refundCents <= 0) throw new Error("Nothing left to refund");
     const amount = (refundCents / 100).toFixed(2);
+    const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, data.userAgent ?? null);
 
     const refund = await paymentsFetch<{ id: string; amount: string; created: string }>(
       `/quickbooks/v4/payments/charges/${encodeURIComponent(tx.intuit_charge_id)}/refunds`,
@@ -287,7 +293,7 @@ export const refundCharge = createServerFn({ method: "POST" })
         body: {
           amount,
           description: data.description ?? "Refund",
-          context: { mobile: "false", isEcommerce: "true" },
+          context: paymentContext,
         },
       },
     );

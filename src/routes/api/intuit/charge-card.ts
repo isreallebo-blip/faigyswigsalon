@@ -13,6 +13,7 @@ const InputSchema = z.object({
   description: z.string().trim().max(500).optional().nullable(),
   capture: z.boolean().default(true),
   turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().min(1).max(128).optional().nullable(),
 });
 
 export const Route = createFileRoute("/api/intuit/charge-card")({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch, verifyTurnstile } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, verifyTurnstile, buildPaymentContextFromRequest } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { userId } = await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
           if (!pm) throw new Error("Saved card not found");
 
           const amount = (body.amountCents / 100).toFixed(2);
+          const paymentContext = buildPaymentContextFromRequest(request, body.deviceId ?? null);
 
           try {
             const charge = await paymentsFetch<{
@@ -48,7 +50,7 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
                 amount,
                 currency: body.currency,
                 capture: body.capture,
-                context: { mobile: "false", isEcommerce: "true" },
+                context: paymentContext,
                 ...(body.description ? { description: body.description } : {}),
               },
             });

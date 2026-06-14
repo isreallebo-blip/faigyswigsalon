@@ -8,6 +8,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "crypto";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ---- AES-256-GCM token encryption ----
@@ -103,6 +104,96 @@ export async function verifyTurnstile(token: string, remoteIp?: string | null): 
 
 export function getTurnstileSiteKey(): string {
   return process.env.TURNSTILE_SITE_KEY ?? "";
+}
+
+// ---- Intuit Payments `context.deviceInfo` builder ----
+//
+// Intuit's Payments API recommends populating `context.deviceInfo` on every
+// Charge / Refund request for card-not-present fraud scoring. We send:
+//   - type:        always "Browser" for this web integration
+//   - id:          opaque per-browser identifier supplied by the client
+//                  (see src/lib/device-id.ts; stored in localStorage)
+//   - ipAddress:   end-user IP from the edge proxy header
+//   - userAgent:   browser User-Agent header (truncated to a safe length)
+//
+// Any field whose value cannot be determined is omitted rather than sent as
+// an empty string, so the payload stays clean if (for example) we are
+// called from a non-browser context.
+
+export interface DeviceInfo {
+  type: "Browser";
+  id?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface PaymentApiContext {
+  mobile: "false";
+  isEcommerce: "true";
+  deviceInfo: DeviceInfo;
+}
+
+function pickIpFromRequest(request: Request): string | undefined {
+  const h = request.headers;
+  const cf = h.get("cf-connecting-ip");
+  if (cf) return cf.trim();
+  const xff = h.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0]?.trim() || undefined;
+  const real = h.get("x-real-ip");
+  if (real) return real.trim();
+  return undefined;
+}
+
+export function buildDeviceInfo(input: {
+  deviceId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}): DeviceInfo {
+  const info: DeviceInfo = { type: "Browser" };
+  if (input.deviceId) info.id = input.deviceId.slice(0, 128);
+  if (input.ipAddress) info.ipAddress = input.ipAddress.slice(0, 64);
+  if (input.userAgent) info.userAgent = input.userAgent.slice(0, 512);
+  return info;
+}
+
+export function buildPaymentContextFromRequest(
+  request: Request,
+  deviceId?: string | null,
+): PaymentApiContext {
+  return {
+    mobile: "false",
+    isEcommerce: "true",
+    deviceInfo: buildDeviceInfo({
+      deviceId,
+      ipAddress: pickIpFromRequest(request),
+      userAgent: request.headers.get("user-agent"),
+    }),
+  };
+}
+
+// Variant for createServerFn handlers, which don't receive a Request directly.
+// Uses TanStack Start's request-context helpers to read edge headers.
+export function buildPaymentContextFromServerFn(
+  deviceId?: string | null,
+  userAgent?: string | null,
+): PaymentApiContext {
+  let ip: string | undefined;
+  let ua: string | undefined = userAgent ?? undefined;
+  try {
+    ip =
+      getRequestHeader("cf-connecting-ip") ||
+      getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
+      getRequestHeader("x-real-ip") ||
+      undefined;
+    if (!ua) ua = getRequestHeader("user-agent") || undefined;
+  } catch {
+    /* not in a request scope — leave ip/ua undefined */
+  }
+  return {
+    mobile: "false",
+    isEcommerce: "true",
+    deviceInfo: buildDeviceInfo({ deviceId, ipAddress: ip, userAgent: ua }),
+  };
 }
 
 export const INTUIT_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
