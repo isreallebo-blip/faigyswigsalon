@@ -20,8 +20,9 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        let intuitTidForError: string | null = null;
         try {
-          const { requireBearerStaff, paymentsFetch, verifyTurnstile, buildPaymentContextFromRequest } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetchWithMeta, verifyTurnstile, buildPaymentContextFromRequest, IntuitApiError } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { userId } = await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
           const paymentContext = buildPaymentContextFromRequest(request, body.deviceId ?? null);
 
           try {
-            const charge = await paymentsFetch<{
+            const { data: charge, meta } = await paymentsFetchWithMeta<{
               id: string;
               status: string;
               authCode?: string;
@@ -63,6 +64,7 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
                 amount_cents: body.amountCents,
                 currency: body.currency,
                 intuit_charge_id: charge.id,
+                intuit_tid: meta.intuitTid,
                 status: charge.status,
                 description: body.description ?? null,
                 created_by: userId,
@@ -70,17 +72,20 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
               .select("*")
               .single();
             if (error) throw error;
-            return new Response(JSON.stringify({ ok: true, charge, transaction: row }), {
-              status: 200,
-              headers: JSON_HEADERS,
-            });
+            return new Response(
+              JSON.stringify({ ok: true, charge, transaction: row, intuitTid: meta.intuitTid }),
+              { status: 200, headers: JSON_HEADERS },
+            );
           } catch (e) {
+            const tid = e instanceof IntuitApiError ? e.intuitTid : null;
+            intuitTidForError = tid;
             await supabaseAdmin.from("payment_transactions").insert({
               client_id: pm.client_id,
               payment_method_id: pm.id,
               amount_cents: body.amountCents,
               currency: body.currency,
               status: "failed",
+              intuit_tid: tid,
               description: body.description ?? null,
               error_message: e instanceof Error ? e.message : String(e),
               created_by: userId,
@@ -90,7 +95,10 @@ export const Route = createFileRoute("/api/intuit/charge-card")({
         } catch (e) {
           const msg = e instanceof Error ? e.message : "error";
           const status = msg === "Unauthorized" ? 401 : msg === "Forbidden" ? 403 : 400;
-          return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: JSON_HEADERS });
+          return new Response(
+            JSON.stringify({ ok: false, error: msg, intuitTid: intuitTidForError }),
+            { status, headers: JSON_HEADERS },
+          );
         }
       },
     },
