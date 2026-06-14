@@ -18,6 +18,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ReceiptTokenRouteImport } from './routes/receipt.$token'
 import { Route as PortalWigsRouteImport } from './routes/portal.wigs'
 import { Route as PortalVerifyRouteImport } from './routes/portal.verify'
 import { Route as PortalSignupRouteImport } from './routes/portal.signup'
@@ -102,6 +103,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ReceiptTokenRoute = ReceiptTokenRouteImport.update({
+  id: '/receipt/$token',
+  path: '/receipt/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PortalWigsRoute = PortalWigsRouteImport.update({
   id: '/wigs',
@@ -340,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/portal/': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/portal': typeof PortalIndexRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
@@ -439,6 +447,7 @@ export interface FileRoutesById {
   '/portal/signup': typeof PortalSignupRoute
   '/portal/verify': typeof PortalVerifyRoute
   '/portal/wigs': typeof PortalWigsRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
@@ -492,6 +501,7 @@ export interface FileRouteTypes {
     | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
+    | '/receipt/$token'
     | '/portal/'
     | '/settings/audit-log'
     | '/settings/calendar'
@@ -539,6 +549,7 @@ export interface FileRouteTypes {
     | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
+    | '/receipt/$token'
     | '/'
     | '/portal'
     | '/settings/audit-log'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/portal/signup'
     | '/portal/verify'
     | '/portal/wigs'
+    | '/receipt/$token'
     | '/_authenticated/'
     | '/portal/'
     | '/_authenticated/settings/audit-log'
@@ -623,6 +635,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  ReceiptTokenRoute: typeof ReceiptTokenRoute
   ApiIntuitCallbackRoute: typeof ApiIntuitCallbackRoute
   ApiIntuitChargeCardRoute: typeof ApiIntuitChargeCardRoute
   ApiIntuitConnectRoute: typeof ApiIntuitConnectRoute
@@ -704,6 +717,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/receipt/$token': {
+      id: '/receipt/$token'
+      path: '/receipt/$token'
+      fullPath: '/receipt/$token'
+      preLoaderRoute: typeof ReceiptTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/portal/wigs': {
       id: '/portal/wigs'
@@ -1081,6 +1101,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  ReceiptTokenRoute: ReceiptTokenRoute,
   ApiIntuitCallbackRoute: ApiIntuitCallbackRoute,
   ApiIntuitChargeCardRoute: ApiIntuitChargeCardRoute,
   ApiIntuitConnectRoute: ApiIntuitConnectRoute,
