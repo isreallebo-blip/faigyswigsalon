@@ -42,10 +42,11 @@ export const Route = createFileRoute("/api/intuit/tokenize-card")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { requireBearerStaff, paymentsFetch, getValidConnection } = await import("@/lib/intuit.server");
+          const { requireBearerStaff, paymentsFetch, getValidConnection, verifyTurnstile } = await import("@/lib/intuit.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { userId } = await requireBearerStaff(request);
           const body = InputSchema.parse(await request.json());
+          await verifyTurnstile(body.turnstileToken, request.headers.get("cf-connecting-ip"));
 
           const conn = await getValidConnection();
           const vaulted = await paymentsFetch<{
