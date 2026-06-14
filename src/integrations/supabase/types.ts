@@ -683,6 +683,54 @@ export type Database = {
         }
         Relationships: []
       }
+      intuit_connections: {
+        Row: {
+          access_token: string
+          access_token_expires_at: string
+          connected_by: string | null
+          created_at: string
+          environment: string
+          id: string
+          provider: string
+          realm_id: string
+          refresh_token: string
+          refresh_token_expires_at: string | null
+          scope: string
+          token_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          access_token_expires_at: string
+          connected_by?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          provider?: string
+          realm_id: string
+          refresh_token: string
+          refresh_token_expires_at?: string | null
+          scope: string
+          token_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          access_token_expires_at?: string
+          connected_by?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          provider?: string
+          realm_id?: string
+          refresh_token?: string
+          refresh_token_expires_at?: string | null
+          scope?: string
+          token_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           body: string
@@ -898,6 +946,137 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          card_brand: string | null
+          cardholder_name: string | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          customer_email: string | null
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          intuit_customer_id: string | null
+          intuit_payment_method_id: string
+          is_default: boolean
+          last4: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          card_brand?: string | null
+          cardholder_name?: string | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          intuit_customer_id?: string | null
+          intuit_payment_method_id: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          card_brand?: string | null
+          cardholder_name?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          intuit_customer_id?: string | null
+          intuit_payment_method_id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount_cents: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          error_message: string | null
+          id: string
+          intuit_charge_id: string | null
+          intuit_refund_id: string | null
+          payment_method_id: string | null
+          provider: string
+          refunded_amount_cents: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          intuit_charge_id?: string | null
+          intuit_refund_id?: string | null
+          payment_method_id?: string | null
+          provider?: string
+          refunded_amount_cents?: number
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          intuit_charge_id?: string | null
+          intuit_refund_id?: string | null
+          payment_method_id?: string | null
+          provider?: string
+          refunded_amount_cents?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
