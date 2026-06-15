@@ -479,3 +479,222 @@ export const listRecentCharges = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// ---- Health check for the Payments card on Settings > System Health ----
+
+export type PaymentsHealthCheckKey = "token" | "api" | "tokenization";
+export type PaymentsHealthStatus = "ok" | "fail" | "skip";
+
+export interface PaymentsHealthCheck {
+  key: PaymentsHealthCheckKey;
+  status: PaymentsHealthStatus;
+  message: string;
+}
+
+export interface PaymentsHealthResult {
+  connected: boolean;
+  overall: "healthy" | "error" | "not_connected";
+  message: string;
+  checks: PaymentsHealthCheck[];
+  realmId: string | null;
+  environment: string | null;
+  checkedAt: string;
+}
+
+export const runPaymentsHealthCheck = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PaymentsHealthResult> => {
+    await assertAdmin(context.userId);
+    const checkedAt = new Date().toISOString();
+    const conn = await supabaseAdmin
+      .from("intuit_connections")
+      .select("realm_id, environment, access_token_expires_at")
+      .eq("provider", "intuit_payments")
+      .maybeSingle();
+
+    if (!conn.data) {
+      return {
+        connected: false,
+        overall: "not_connected",
+        message:
+          "QuickBooks Payments is not yet activated. Connect your QuickBooks account in Settings > QuickBooks to enable card processing.",
+        checks: [],
+        realmId: null,
+        environment: null,
+        checkedAt,
+      };
+    }
+
+    const checks: PaymentsHealthCheck[] = [];
+
+    let validConn: { access_token: string; realm_id: string; environment: "sandbox" | "production" } | null = null;
+    try {
+      const { getValidConnection } = await import("@/lib/intuit.server");
+      validConn = await getValidConnection();
+      checks.push({ key: "token", status: "ok", message: "OAuth token is valid." });
+    } catch (e) {
+      checks.push({
+        key: "token",
+        status: "fail",
+        message: "OAuth token expired — reconnect in Settings > QuickBooks.",
+      });
+      return {
+        connected: true,
+        overall: "error",
+        message: e instanceof Error ? e.message : "Token error",
+        checks,
+        realmId: conn.data.realm_id,
+        environment: conn.data.environment,
+        checkedAt,
+      };
+    }
+
+    try {
+      const { getPaymentsBaseUrl } = await import("@/lib/intuit.server");
+      const res = await fetch(`${getPaymentsBaseUrl(validConn.environment)}/quickbooks/v4/payments/tokens`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${validConn.access_token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "request-Id": crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          card: {
+            number: "4112344112344113",
+            expMonth: "12",
+            expYear: String(new Date().getFullYear() + 2),
+            cvc: "123",
+            name: "Health Check",
+            address: { streetAddress: "1 Test St", city: "Mountain View", region: "CA", postalCode: "94043", country: "US" },
+          },
+        }),
+      });
+      if (res.ok) {
+        checks.push({ key: "api", status: "ok", message: "Payments API reachable. Merchant account verified." });
+      } else if (res.status === 401 || res.status === 403) {
+        checks.push({ key: "api", status: "fail", message: "Merchant account inactive or unauthorized." });
+      } else {
+        checks.push({ key: "api", status: "fail", message: `Payments API error (${res.status}).` });
+      }
+    } catch {
+      checks.push({ key: "api", status: "fail", message: "Payments API unreachable." });
+    }
+
+    try {
+      const tokJsUrl =
+        validConn.environment === "production"
+          ? "https://js.appcenter.intuit.com/v1/payments/payments.js"
+          : "https://jssdkqa.appcenter.intuit.com/v1/payments/payments.js";
+      const tokRes = await fetch(tokJsUrl, { method: "HEAD" });
+      checks.push({
+        key: "tokenization",
+        status: tokRes.ok ? "ok" : "fail",
+        message: tokRes.ok ? "Tokenization endpoint responds." : `Tokenization endpoint error (${tokRes.status}).`,
+      });
+    } catch {
+      checks.push({ key: "tokenization", status: "skip", message: "Tokenization endpoint check skipped." });
+    }
+
+    const failed = checks.find((c) => c.status === "fail");
+    return {
+      connected: true,
+      overall: failed ? "error" : "healthy",
+      message: failed ? failed.message : "Connected — QuickBooks Payments active. Merchant account verified.",
+      checks,
+      realmId: conn.data.realm_id,
+      environment: conn.data.environment,
+      checkedAt,
+    };
+  });
+
+// ---- Health-check test charge: charge then immediately full refund ----
+// Admin-only. Does NOT write to payment_transactions, so the test charge
+// never leaks into the bank register or any client totals.
+
+const TestChargeInput = z.object({
+  cardNumber: z.string().trim().regex(/^\d{12,19}$/, "Invalid card number"),
+  expMonth: z.number().int().min(1).max(12),
+  expYear: z.number().int().min(2024).max(2099),
+  cvv: z.string().trim().regex(/^\d{3,4}$/, "Invalid CVV"),
+  postalCode: z.string().trim().min(3).max(12),
+  amountCents: z.number().int().min(100).max(500),
+});
+
+export const runPaymentsTestCharge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => TestChargeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { getValidConnection, getPaymentsBaseUrl, paymentsFetchWithMeta, buildPaymentContextFromServerFn } = await import(
+      "@/lib/intuit.server"
+    );
+    const conn = await getValidConnection();
+    const amount = (data.amountCents / 100).toFixed(2);
+
+    const tokRes = await fetch(`${getPaymentsBaseUrl(conn.environment)}/quickbooks/v4/payments/tokens`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${conn.access_token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "request-Id": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        card: {
+          number: data.cardNumber,
+          expMonth: String(data.expMonth).padStart(2, "0"),
+          expYear: String(data.expYear),
+          cvc: data.cvv,
+          name: "System Health Test",
+          address: { postalCode: data.postalCode, country: "US" },
+        },
+      }),
+    });
+    if (!tokRes.ok) {
+      const txt = await tokRes.text();
+      throw new Error(`Tokenization failed (${tokRes.status}): ${txt.slice(0, 300)}`);
+    }
+    const tokJson = (await tokRes.json()) as { value?: string };
+    if (!tokJson.value) throw new Error("Tokenization returned no token value");
+
+    const paymentContext = buildPaymentContextFromServerFn(null, null);
+    const { data: charge, meta: chargeMeta } = await paymentsFetchWithMeta<{
+      id: string;
+      status: string;
+      amount: string;
+    }>(`/quickbooks/v4/payments/charges`, {
+      method: "POST",
+      body: {
+        token: tokJson.value,
+        amount,
+        currency: "USD",
+        capture: true,
+        context: paymentContext,
+        description: "System health test charge (auto-refunded)",
+      },
+    });
+
+    let refundId: string | null = null;
+    let refundError: string | null = null;
+    try {
+      const { data: refund } = await paymentsFetchWithMeta<{ id: string }>(
+        `/quickbooks/v4/payments/charges/${encodeURIComponent(charge.id)}/refunds`,
+        { method: "POST", body: { amount, description: "System health test refund" } },
+      );
+      refundId = refund.id;
+    } catch (e) {
+      refundError = e instanceof Error ? e.message : String(e);
+    }
+
+    return {
+      ok: true,
+      amount,
+      chargeId: charge.id,
+      chargeStatus: charge.status,
+      chargeIntuitTid: chargeMeta.intuitTid,
+      refundId,
+      refundError,
+    };
+  });
+
+

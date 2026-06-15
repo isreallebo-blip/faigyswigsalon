@@ -1,80 +1,69 @@
-# Intuit Production Compliance Update
+# Payments Health + Full Payment Actions
 
-## 1. Encrypt Intuit OAuth tokens (AES-256-GCM)
+This is a large scope. Plan groups it into 4 shippable phases so you can review each before the next. I'll implement phase 1 immediately on approval, then proceed phase by phase (or all at once if you say "do it all").
 
-- **Secret:** new `INTUIT_TOKEN_ENCRYPTION_KEY` (32 bytes, base64). I'll prompt you to add it.
-- **Storage format:** ciphertext written into existing `intuit_connections.access_token` / `refresh_token` (text columns) as `enc:v1:<iv_b64>:<tag_b64>:<ct_b64>`.
-- **Helpers** in `src/lib/intuit.server.ts`:
-  - `encryptToken(plain)` — AES-256-GCM with random 12-byte IV, returns the `enc:v1:…` envelope.
-  - `decryptToken(stored)` — if value begins with `enc:v1:`, decrypt; otherwise return as plaintext (legacy fallback so existing rows keep working until next refresh).
-- **Read path:** `loadConnection()` decrypts before returning.
-- **Write path:** `upsertConnection`, `getValidConnection` (on refresh), and `forceRefreshConnection` encrypt before saving. Existing rows get migrated to ciphertext automatically the first time they're refreshed.
-- **Decryption only at API-call time:** the token is decrypted inside `getValidConnection()` which is only called by `paymentsFetch()` and the test/refresh server fns.
+## Phase 1 — System Health: QuickBooks Payments card + Test Charge
 
-## 2. Cloudflare Turnstile on payment workflows
+**File:** `src/routes/_authenticated/settings.system-health.tsx` + new server fn in `src/lib/intuit.functions.ts`.
 
-- **Secrets:** `TURNSTILE_SECRET_KEY` (server) + `VITE_TURNSTILE_SITE_KEY` (public). I'll prompt you to add them.
-- **Server helper:** `verifyTurnstile(token, remoteIp)` in `src/lib/intuit.server.ts` posts to `https://challenges.cloudflare.com/turnstile/v0/siteverify`. Throws on failure. If `TURNSTILE_SECRET_KEY` is unset it throws (fail-closed).
-- **Wired into:**
-  - `/api/intuit/tokenize-card` (saving a new card)
-  - `/api/intuit/charge-card` (charging a saved card)
-  - `/api/intuit/refund` (refunds)
-  - server fns `saveTokenizedCard`, `chargeCard`, `refundCharge`
-  Each now requires a `turnstileToken` field in its input.
-- **UI component:** `<TurnstileWidget onToken={...} />` rendered in any card-collection / charge form. Loads `https://challenges.cloudflare.com/turnstile/v0/api.js` once.
+- New card "QuickBooks Payments".
+- Reads existing `getIntuitStatus`.
+  - Not connected → grey "Not Connected" badge, copy + link button to `/settings/quickbooks`. No test charge UI.
+  - Connected → run checks in a new `runPaymentsHealthCheck` server fn:
+    1. Token not expired (from status).
+    2. `GET /quickbooks/v4/payments/echo` (or `/charges?count=1`) via `paymentsFetchWithMeta` → API reachable + merchant active.
+    3. Tokenization endpoint reachability (HEAD on Intuit tokenization JS bundle URL).
+  - Green or specific red message per failed check.
+- Test charge subsection (connected only):
+  - Amber warning banner.
+  - Inputs: card number, MM/YY, CVV, zip, amount (default $1.00, min $1, max $5).
+  - Uses existing Intuit tokenization (same flow as `tokenize-card.ts`) → calls a new server route `/api/intuit/test-charge` that charges + immediately refunds in one handler, returns both ids. Marks `payment_transactions` rows with `is_test=true` (new column) so they're excluded from bank register and totals.
+  - Writes audit log entries via existing `audit_logs`.
 
-## 3. Card data verification (compliance only — no code change needed)
+**Migration:** add `is_test boolean default false` to `payment_transactions`; bank-register query filters it out.
 
-- Schema audit confirms: `payment_methods` stores only `card_brand`, `last4`, `exp_month`, `exp_year`, `cardholder_name`, plus the Intuit `intuit_payment_method_id` token. No PAN, no CVV, no Track2.
-- `payment_transactions` stores only `amount_cents`, `currency`, `status`, plus Intuit IDs.
-- All charges route through `cardOnFile: { id: intuit_payment_method_id }` — i.e., the Intuit token, never raw card data.
-- I'll add a `CHECK` constraint on `payment_methods.last4` (`~ '^\d{4}$'`) as a defense-in-depth signal and document the audit.
+## Phase 2 — Payment status model + badges
 
-## 4. Receipts
+**Migration:**
+- Extend `payments.status` allowed values: `completed`, `pending`, `voided`, `refunded`, `partially_refunded`, `disputed`, `lost`, `failed`.
+- Add columns to `payments`: `voided_at`, `voided_by`, `void_reason`, `refunded_amount_cents`, `refund_reason`, `dispute_opened_at`, `dispute_reason`, `dispute_amount_cents`, `dispute_deadline`, `dispute_notes`, `dispute_outcome`.
+- New table `payment_actions` (audit trail per payment): `payment_id`, `action` (charge/void/refund/partial_refund/dispute_opened/dispute_won/dispute_lost), `amount_cents`, `reason`, `notes`, `performed_by`, `intuit_tid`, `created_at`. RLS: staff read all, admin write. GRANT to authenticated + service_role.
 
-- **New columns on `payment_transactions`:**
-  - `receipt_token uuid unique default gen_random_uuid()` — opaque token for the public receipt URL
-  - `receipt_email text`
-  - `receipt_sent_at timestamptz`
-  - `salon_name`, `salon_address`, `salon_phone` — snapshot on the transaction (configurable later).
-- **Public receipt page** `/receipt/$token` — read-only summary (date, amount, last-4, brand, status, refunded amount, salon info). Uses a public server fn `getReceiptByToken({ token })` with `supabaseAdmin` that returns only safe display fields (no `intuit_charge_id`).
-- **Email receipt** server fn `emailPaymentReceipt({ transactionId, email })` — admin-only, sends via Resend connector with a React Email template `payment-charge-receipt.tsx`, records `receipt_email` / `receipt_sent_at`.
-- **Receipt UI block** appended to the existing QuickBooks settings page → "Recent charges" with a "Send receipt" action; receipt link copies to clipboard.
+**Shared:** `src/components/payment-status-badge.tsx` with all 8 states (colors per spec, struck-through for voided, amount shown for partial).
 
-## 5. Intuit identifier audit (questionnaire answer)
+## Phase 3 — Void / Refund / Partial Refund actions
 
-- **`realm_id`** (intuit_connections): **required** — it's the QuickBooks company ID and is part of every Payments API URL (`/quickbooks/v4/customers/{realmId}/cards/...`). Cannot be removed.
-- **`intuit_customer_id`** (payment_methods): currently set to the `realm_id` (used as the customer scope when vaulting). Required.
-- **`intuit_payment_method_id`** / **`intuit_charge_id`** / **`intuit_refund_id`**: required to perform subsequent charges / refunds / reconciliation against the same Intuit record.
-- **No Intuit *user* ID** is stored (we never call OpenID/userinfo). Only company/realm + payment-object IDs.
+**Server routes** (all require admin + reauth OTP + Turnstile, mirroring `charge-card.ts`):
+- `POST /api/intuit/void` — same-day, unsettled card payments only. Calls QBO void API.
+- Extend existing `POST /api/intuit/refund` to accept `reason` + `notes` and write `payment_actions`.
+- `POST /api/payments/manual-void` and `/api/payments/manual-refund` for cash/check (status update + audit only, no API).
 
-## 6. Compliance summary
+Each action:
+- Updates payment status + amounts.
+- Inserts `payment_actions` row.
+- Sends client SMS + email via existing messaging/email queue (templates with the exact copy you specified).
+- Writes audit log.
 
-After deploy I'll print a checklist:
+**UI:**
+- `src/components/payment-actions-menu.tsx` reusable dropdown — added to payment rows in `src/routes/_authenticated/payments.tsx` and on client profiles.
+- Modals: `VoidPaymentDialog`, `RefundPaymentDialog` (full/partial in one dialog with mode toggle), with reauth-OTP gate using existing `verification` flow.
+- When QBO not connected: card payments show buttons but clicking opens "QuickBooks Payments is not connected…" toast with link. Cash/check refunds show the manual-refund note.
 
-```text
-Token encryption ............ AES-256-GCM at rest (legacy rows migrate on next refresh)
-CAPTCHA ..................... Cloudflare Turnstile on tokenize / charge / refund
-Card data storage ........... None (PAN/CVV/Track2 never touch DB; Intuit tokens only)
-Receipts .................... Public /receipt/$token page + email-receipt action
-Intuit identifiers .......... realm_id + payment-object IDs only; no Intuit user ID
-```
+**Email templates:** add `payment-voided.tsx`, `payment-refunded.tsx` in `src/lib/email-templates/` (registered in `registry.ts`). SMS via existing `messaging.functions.ts`.
 
-## Files to add / change
+## Phase 4 — Disputes + Detail view + Bank register
 
-- **Migration** (one): `intuit_connections` no-op (semantic change), `payment_transactions` add receipt columns, `payment_methods` last4 CHECK.
-- **`src/lib/intuit.server.ts`**: add encrypt/decrypt + verifyTurnstile, use in load/upsert/refresh.
-- **`src/lib/intuit.functions.ts`**: require `turnstileToken`, call `verifyTurnstile`, add `emailPaymentReceipt`, `listRecentCharges`, `getReceiptByToken`.
-- **`src/routes/api/intuit/*.ts`** (tokenize-card, charge-card, refund): validate `turnstileToken`.
-- **`src/components/turnstile-widget.tsx`** (new).
-- **`src/lib/email-templates/payment-charge-receipt.tsx`** (new) + registry entry.
-- **`src/routes/receipt.$token.tsx`** (new, public).
-- **`src/routes/_authenticated/settings.quickbooks.tsx`**: append "Recent charges" + receipt actions.
+- `MarkDisputedDialog` (date, reason, amount, deadline, notes) + `ResolveDisputeDialog` (Won/Lost).
+- Admin email on dispute opened (uses existing email queue + new `dispute-opened.tsx` admin template).
+- Dashboard widget: "Open disputes" list with deadline (added to `src/routes/_authenticated/index.tsx`).
+- Payment detail view: new route `src/routes/_authenticated/payments.$id.tsx` showing charge details, current status badge, `payment_actions` history, QBO TIDs, related notifications (joined from `notification_log` by `payment_id` metadata), audit entries.
+- Bank register (`src/routes/_authenticated/payments.tsx` register section): apply the rules per spec — strike-through voids, negative entries for refunds, amber-held disputed amounts excluded until resolved, lost = negative entry, test charges hidden entirely.
 
-## Secrets I need you to add (via the secure form)
+## Notes / assumptions
+- "Admin reauthentication OTP" reuses the existing `verification` system (`verification_challenges` / `verified_sessions`) — same as other sensitive actions.
+- Client SMS uses existing Twilio integration; email uses the existing transactional queue.
+- "QuickBooks Payments void API" — Intuit's Payments API only supports voiding unsettled auths via a refund on a captured-but-unsettled charge or `DELETE /charges/{id}` for auth-only. For captured-same-day charges QBO actually issues a same-day refund that nets to zero; UI labels it "Void" per your spec but server picks the correct API call.
+- Health check #4 (tokenization reachability) is a HEAD to Intuit's JS bundle — there's no public "ping" endpoint.
 
-1. `INTUIT_TOKEN_ENCRYPTION_KEY` — 32 raw bytes base64-encoded (I'll show you `openssl rand -base64 32`).
-2. `TURNSTILE_SECRET_KEY` — from Cloudflare Turnstile dashboard.
-3. `VITE_TURNSTILE_SITE_KEY` — Turnstile site key (publishable, goes in `.env`).
-
-Approve and I'll implement the migration first, then code, then prompt for the three secrets.
+## Suggested first ship
+**Phase 1 only**, so you can see the health card + test-charge round-trip working before we commit to the bigger schema changes in phases 2–4. Reply "phase 1" to ship just that, or "all" to proceed straight through.
