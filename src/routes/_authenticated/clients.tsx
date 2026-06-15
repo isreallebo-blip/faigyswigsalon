@@ -30,6 +30,8 @@ import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
 import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components/portal-access";
 import { useSignedPhoto } from "@/lib/use-signed-photo";
+import { PaymentMethodsTab } from "@/components/payment-methods-tab";
+import { ChargeCardDialog } from "@/components/charge-card-dialog";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
