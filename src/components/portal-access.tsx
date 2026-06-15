@@ -221,8 +221,13 @@ export function PortalAccessCard({ clientId }: { clientId: string }) {
             <div className="text-xs uppercase tracking-wider text-muted-foreground">
               Portal Access
             </div>
-            <div className="mt-1.5">
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
               <PortalStatusBadge status={s} />
+              {a.smsOptIn === false && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  SMS opted out
+                </span>
+              )}
             </div>
           </div>
         </div>
