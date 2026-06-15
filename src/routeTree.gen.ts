@@ -53,6 +53,7 @@ import { Route as ApiIntuitChargeCardRouteImport } from './routes/api/intuit/cha
 import { Route as ApiIntuitCallbackRouteImport } from './routes/api/intuit/callback'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 import { Route as AuthenticatedSettingsQuickbooksRouteImport } from './routes/_authenticated/settings.quickbooks'
+import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings.notifications'
 import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
@@ -284,6 +285,12 @@ const AuthenticatedSettingsQuickbooksRoute =
     path: '/quickbooks',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsNotificationsRoute =
+  AuthenticatedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsClientPortalRoute =
   AuthenticatedSettingsClientPortalRouteImport.update({
     id: '/client-portal',
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
@@ -400,6 +408,7 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
@@ -453,6 +462,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
+  '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
+    | '/settings/notifications'
     | '/settings/quickbooks'
     | '/settings/users'
     | '/api/intuit/callback'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
+    | '/settings/notifications'
     | '/settings/quickbooks'
     | '/settings/users'
     | '/api/intuit/callback'
@@ -607,6 +619,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/client-portal'
+    | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/quickbooks'
     | '/_authenticated/settings/users'
     | '/api/intuit/callback'
@@ -963,6 +976,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsQuickbooksRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/notifications': {
+      id: '/_authenticated/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/client-portal': {
       id: '/_authenticated/settings/client-portal'
       path: '/client-portal'
@@ -1012,6 +1032,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsCalendarRoute: typeof AuthenticatedSettingsCalendarRoute
   AuthenticatedSettingsClientPortalRoute: typeof AuthenticatedSettingsClientPortalRoute
+  AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsQuickbooksRoute: typeof AuthenticatedSettingsQuickbooksRoute
   AuthenticatedSettingsUsersRoute: typeof AuthenticatedSettingsUsersRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
@@ -1022,6 +1043,8 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsCalendarRoute: AuthenticatedSettingsCalendarRoute,
   AuthenticatedSettingsClientPortalRoute:
     AuthenticatedSettingsClientPortalRoute,
+  AuthenticatedSettingsNotificationsRoute:
+    AuthenticatedSettingsNotificationsRoute,
   AuthenticatedSettingsQuickbooksRoute: AuthenticatedSettingsQuickbooksRoute,
   AuthenticatedSettingsUsersRoute: AuthenticatedSettingsUsersRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,

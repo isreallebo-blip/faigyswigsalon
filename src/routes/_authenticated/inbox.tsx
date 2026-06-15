@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Send, MessageSquare, CheckCircle2, StickyNote } from "lucide-react";
+import { Send, MessageSquare, CheckCircle2, StickyNote, Megaphone } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useAccess } from "@/lib/use-access";
 import {
   listConversations,
   getConversation,
