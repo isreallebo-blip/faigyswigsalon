@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getClientIp } from "@/lib/audit.functions";
 
-export type AuditAction = "create" | "update" | "delete" | "view" | "void";
+export type AuditAction = "create" | "update" | "delete" | "view" | "void" | "refund" | "dispute" | "dispute_resolved";
 export type AuditModule =
   | "client"
   | "inventory"
