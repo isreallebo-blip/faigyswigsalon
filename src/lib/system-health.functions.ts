@@ -98,6 +98,30 @@ async function checkStorage(): Promise<HealthResult> {
   return { status: "healthy", message: "Connected — Storage buckets client-photos and wig-photos found" };
 }
 
+async function getOrCreateUnsubscribeToken(email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const { data: existing } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (existing?.token) return existing.token;
+
+  const token = crypto.randomUUID();
+  const { error } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .upsert({ email: normalized, token }, { onConflict: "email" });
+  if (error) throw error;
+
+  const { data: created } = await supabaseAdmin
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!created?.token) throw new Error("Could not create unsubscribe token");
+  return created.token;
+}
+
 const REQUIRED_ENV = [
   "TWILIO_ACCOUNT_SID",
   "TWILIO_AUTH_TOKEN",
@@ -179,6 +203,7 @@ export const sendTestEmail = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context.userId);
     const messageId = crypto.randomUUID();
+    const unsubscribeToken = await getOrCreateUnsubscribeToken(data.to);
     const subject = "Test email from Faigy's Wig Salon";
     const html = `<!doctype html><html><body style="margin:0;background:#faf6ef;font-family:Georgia,serif;color:#2a2218;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf6ef;padding:32px 0;">
@@ -209,6 +234,7 @@ Hi,<br/><br/>This is a test email from Faigy's Wig Salon CRM. If you received th
         text,
         purpose: "transactional",
         label: "system_health_test",
+        unsubscribe_token: unsubscribeToken,
         queued_at: new Date().toISOString(),
       },
     });
