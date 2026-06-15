@@ -668,6 +668,7 @@ function ClientProfileTabs({
             </Badge>
           )}
         </TabsTrigger>
+        <TabsTrigger value="cards">Payment Methods</TabsTrigger>
         <TabsTrigger value="portal">Portal Access</TabsTrigger>
       </TabsList>
       {children}
