@@ -183,6 +183,7 @@ export const getClientPortalAccess = createServerFn({ method: "POST" })
       maskedPhone: maskPhone(client.phone),
       hasEmail: !!client.email,
       hasPhone: !!client.phone,
+      smsOptIn: client.sms_opt_in ?? true,
       activity: activity ?? [],
     };
   });
