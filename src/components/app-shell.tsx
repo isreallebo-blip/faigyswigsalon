@@ -1,5 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   LayoutDashboard,
   Users,
@@ -21,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useAccess } from "@/lib/use-access";
 import { useMyProfile } from "@/lib/use-profile";
 import { UserAvatar } from "@/components/user-avatar";
+import { getStaffUnreadCount } from "@/lib/inbox.functions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +32,56 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const BASE_TITLE = "Faigy's Wig Salon";
+
+function useUnreadInbox() {
+  const fn = useServerFn(getStaffUnreadCount);
+  const [visible, setVisible] = useState(
+    typeof document === "undefined" ? true : document.visibilityState === "visible",
+  );
+  useEffect(() => {
+    const onVis = () => setVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  const q = useQuery({
+    queryKey: ["staff-inbox-unread"],
+    queryFn: () => fn(),
+    refetchInterval: visible ? 30_000 : false,
+    refetchOnWindowFocus: true,
+  });
+  const count = q.data ?? 0;
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.title = count > 0 ? `(${count > 99 ? "99+" : count}) ${BASE_TITLE}` : BASE_TITLE;
+    return () => {
+      document.title = BASE_TITLE;
+    };
+  }, [count]);
+  return count;
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  if (!count) return null;
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      className="ml-auto inline-flex items-center justify-center rounded-full px-1.5 font-medium text-white"
+      style={{
+        background: "oklch(0.55 0.2 25)",
+        minWidth: 18,
+        height: 18,
+        fontSize: 10,
+        lineHeight: 1,
+      }}
+      aria-label={`${count} unread messages`}
+    >
+      {label}
+    </span>
+  );
+}
+
 
 function UserMenu({ onSignOut }: { onSignOut: () => void }) {
   const { data: profile } = useMyProfile();
@@ -84,6 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAdmin } = useAccess();
   const nav = isAdmin ? [...baseNav, ...adminNav] : baseNav;
+  const unreadInbox = useUnreadInbox();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -124,6 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
               <Icon className="h-4 w-4" />
               <span>{item.label}</span>
+              {item.to === "/inbox" && <UnreadBadge count={unreadInbox} />}
             </Link>
           );
         })}

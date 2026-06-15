@@ -57,6 +57,18 @@ export const unreadCount = createServerFn({ method: "GET" })
     return { count: count ?? 0 };
   });
 
+export const getStaffUnreadCount = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { count } = await context.supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("direction", "inbound")
+      .neq("channel", "internal_note")
+      .is("read_by_staff_at", null);
+    return count ?? 0;
+  });
+
 export const getConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
