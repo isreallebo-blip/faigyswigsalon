@@ -75,26 +75,47 @@ function InboxPage() {
     <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 h-[calc(100vh-7rem)]">
       <div className="flex flex-col border border-border rounded-xl overflow-hidden bg-card">
         <div className="p-3 border-b border-border space-y-2">
-          <h1 className="font-display text-lg flex items-center gap-2">
-            <MessageSquare className="size-4" /> Inbox
-          </h1>
-          <Input placeholder="Search by name, CLT ID…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <Tabs value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="unread">Unread</TabsTrigger>
-              <TabsTrigger value="replied">Replied</TabsTrigger>
-              <TabsTrigger value="resolved">Done</TabsTrigger>
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="font-display text-lg flex items-center gap-2">
+              <MessageSquare className="size-4" /> Inbox
+            </h1>
+            {isAdmin && (
+              <Button asChild size="sm" className="gap-1.5">
+                <Link to="/broadcasts/new">
+                  <Plus className="size-3.5" /> New Broadcast
+                </Link>
+              </Button>
+            )}
+          </div>
+          <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="conversations">Conversations</TabsTrigger>
+              <TabsTrigger value="broadcasts" className="gap-1.5">
+                <Megaphone className="size-3" /> Broadcasts
+              </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Tabs value={channel} onValueChange={(v) => setChannel(v as ChannelFilter)}>
-            <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="sms">SMS</TabsTrigger>
-              <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="portal">Portal</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {view === "conversations" && (
+            <>
+              <Input placeholder="Search by name, CLT ID…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Tabs value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+                <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="unread">Unread</TabsTrigger>
+                  <TabsTrigger value="replied">Replied</TabsTrigger>
+                  <TabsTrigger value="resolved">Done</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Tabs value={channel} onValueChange={(v) => setChannel(v as ChannelFilter)}>
+                <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="sms">SMS</TabsTrigger>
+                  <TabsTrigger value="email">Email</TabsTrigger>
+                  <TabsTrigger value="portal">Portal</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           {(conversations ?? []).map((c) => {
