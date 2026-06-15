@@ -457,11 +457,18 @@ function RegisterTab() {
     },
   });
 
+  // Bank-register rules: voided & disputed excluded from balance, refunds subtract,
+  // lost disputes net to zero, partial refunds reduce the entry.
   const balance = useMemo(() => {
     const acct = accounts.data?.find((a) => a.id === activeAcct);
     if (!acct) return 0;
     const txnSum = (txns.data ?? []).reduce((s, t) => s + Number(t.amount), 0);
-    const paySum = (payments.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const paySum = (payments.data ?? []).reduce((s, p) => {
+      if (p.status === "voided" || p.status === "disputed") return s;
+      if (p.status === "lost") return s; // funds reversed, nets to zero
+      const refunded = (p.refunded_amount_cents ?? 0) / 100;
+      return s + Number(p.amount) - refunded;
+    }, 0);
     return Number(acct.starting_balance) + txnSum + paySum;
   }, [accounts.data, txns.data, payments.data, activeAcct]);
 
