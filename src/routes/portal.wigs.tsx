@@ -68,15 +68,61 @@ function WigsPage() {
                 </div>
               </div>
 
-              {inRepair && (
+              {(inRepair || ready) && w.repair_status && (
                 <div className="mt-4">
-                  <RepairProgress />
+                  <RepairProgress status={w.repair_status} />
                 </div>
               )}
             </Card>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function RepairProgress({ status }: { status: string }) {
+  const steps = ["Sent to repair shop", "In progress", "Ready for pickup"];
+  const isIssue = status === "Issue — Needs Review";
+  let current = 0;
+  switch (status) {
+    case "Sent to Vendor":
+      current = 0;
+      break;
+    case "In Progress":
+      current = 1;
+      break;
+    case "Returned":
+      current = 2;
+      break;
+    case "Issue — Needs Review":
+      current = 1;
+      break;
+    default:
+      current = 0;
+  }
+  const activeBar = isIssue ? "oklch(0.75 0.15 60)" : "oklch(0.65 0.13 75)";
+  const activeText = isIssue ? "oklch(0.45 0.13 60)" : "oklch(0.45 0.1 75)";
+  return (
+    <div className="flex items-center gap-2">
+      {steps.map((s, i) => (
+        <div key={s} className="flex-1">
+          <div
+            className="h-1 rounded-full"
+            style={{
+              background: i <= current ? activeBar : "oklch(0.9 0.02 80)",
+            }}
+          />
+          <p
+            className="mt-1.5 text-[10px] uppercase tracking-wider"
+            style={{
+              color: i <= current ? activeText : "oklch(0.55 0.02 60)",
+            }}
+          >
+            {s}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
