@@ -147,7 +147,7 @@ export const getClientPortalAccess = createServerFn({ method: "POST" })
     const { data: client, error } = await supabaseAdmin
       .from("clients")
       .select(
-        "id, full_name, display_id, email, phone, auth_user_id, portal_status, portal_signup_at, portal_signup_method, portal_last_login_at, portal_invite_sent_at, portal_locked_at, portal_lock_reason, portal_lock_auto, portal_disabled_at, portal_failed_login_count, portal_last_failed_login_at",
+        "id, full_name, display_id, email, phone, auth_user_id, portal_status, portal_signup_at, portal_signup_method, portal_last_login_at, portal_invite_sent_at, portal_locked_at, portal_lock_reason, portal_lock_auto, portal_disabled_at, portal_failed_login_count, portal_last_failed_login_at, sms_opt_in",
       )
       .eq("id", data.clientId)
       .single();
