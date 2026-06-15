@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
-import { Users as UsersIcon, CalendarDays, ScrollText, ShieldCheck, CreditCard, Bell } from "lucide-react";
+import { Users as UsersIcon, CalendarDays, ScrollText, ShieldCheck, CreditCard } from "lucide-react";
 import { useAccess } from "@/lib/use-access";
 import { cn } from "@/lib/utils";
 import { getMyAccess } from "@/lib/admin-users.functions";
@@ -29,7 +29,6 @@ function SettingsLayout() {
     { to: "/settings/users", label: "Users", icon: UsersIcon },
     { to: "/settings/client-portal", label: "Client Portal", icon: ShieldCheck },
     { to: "/settings/calendar", label: "Calendar", icon: CalendarDays },
-    { to: "/settings/notifications", label: "Notifications", icon: Bell },
     { to: "/settings/quickbooks", label: "QuickBooks", icon: CreditCard },
     { to: "/settings/audit-log", label: "Audit log", icon: ScrollText },
   ] as const;
