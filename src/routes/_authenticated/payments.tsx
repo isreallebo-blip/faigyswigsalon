@@ -449,9 +449,8 @@ function RegisterTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("id, date, amount, description, client:client_id(full_name)")
+        .select("id, date, amount, description, status, refunded_amount_cents, dispute_amount_cents, method, client:client_id(full_name)")
         .eq("bank_account_id", activeAcct!)
-        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return data as (Payment & { client: { full_name: string } | null })[];
