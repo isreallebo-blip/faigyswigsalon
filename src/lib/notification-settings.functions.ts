@@ -49,10 +49,10 @@ export const updateMessagingSettings = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Admins only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = { ...data, updated_at: new Date().toISOString() };
     const { error } = await supabaseAdmin
       .from("messaging_settings")
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ ...data, updated_at: new Date().toISOString() } as any)
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };

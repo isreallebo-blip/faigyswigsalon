@@ -150,7 +150,7 @@ export const sendBroadcast = createServerFn({ method: "POST" })
         channel: data.channel,
         body: data.sms_body ?? data.email_body ?? "",
         email_subject: data.email_subject ?? null,
-        recipient_filter: data.filter as unknown as Record<string, unknown>,
+        recipient_filter: data.filter as unknown as never,
         recipient_count: recipients.length,
         sent_count: 0,
         delivered_count: 0,
