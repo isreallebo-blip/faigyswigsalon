@@ -240,6 +240,7 @@ export const getPortalWigs = createServerFn({ method: "GET" })
           hair_type: w.hair_type,
           photo,
           client_status: clientWigStatus(w.status),
+          repair_status: mapRepairStatusForClient(repairStatusByWig.get(w.id) ?? null),
         };
       }),
     );
