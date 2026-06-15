@@ -32,6 +32,7 @@ type ChannelFilter = "all" | "sms" | "email" | "portal";
 function InboxPage() {
   const list = useServerFn(listConversations);
   const qc = useQueryClient();
+  const { isAdmin } = useAccess();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [channel, setChannel] = useState<ChannelFilter>("all");
   const [search, setSearch] = useState("");
@@ -64,9 +65,16 @@ function InboxPage() {
     <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 h-[calc(100vh-7rem)]">
       <div className="flex flex-col border border-border rounded-xl overflow-hidden bg-card">
         <div className="p-3 border-b border-border space-y-2">
-          <h1 className="font-display text-lg flex items-center gap-2">
-            <MessageSquare className="size-4" /> Inbox
-          </h1>
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="font-display text-lg flex items-center gap-2">
+              <MessageSquare className="size-4" /> Inbox
+            </h1>
+            {isAdmin && (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/inbox/new-broadcast"><Megaphone className="size-3.5" /> New Broadcast</Link>
+              </Button>
+            )}
+          </div>
           <Input placeholder="Search by name, CLT ID…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <Tabs value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
             <TabsList className="grid grid-cols-4 w-full">

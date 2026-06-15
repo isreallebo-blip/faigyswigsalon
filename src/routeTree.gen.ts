@@ -57,6 +57,7 @@ import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes
 import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
+import { Route as AuthenticatedInboxNewBroadcastRouteImport } from './routes/_authenticated/inbox.new-broadcast'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -309,6 +310,12 @@ const AuthenticatedSettingsAuditLogRoute =
     path: '/audit-log',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedInboxNewBroadcastRoute =
+  AuthenticatedInboxNewBroadcastRouteImport.update({
+    id: '/new-broadcast',
+    path: '/new-broadcast',
+    getParentRoute: () => AuthenticatedInboxRoute,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -336,7 +343,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
-  '/inbox': typeof AuthenticatedInboxRoute
+  '/inbox': typeof AuthenticatedInboxRouteWithChildren
   '/inventory': typeof AuthenticatedInventoryRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/portal/wigs': typeof PortalWigsRoute
   '/receipt/$token': typeof ReceiptTokenRoute
   '/portal/': typeof PortalIndexRoute
+  '/inbox/new-broadcast': typeof AuthenticatedInboxNewBroadcastRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -386,7 +394,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
-  '/inbox': typeof AuthenticatedInboxRoute
+  '/inbox': typeof AuthenticatedInboxRouteWithChildren
   '/inventory': typeof AuthenticatedInventoryRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -405,6 +413,7 @@ export interface FileRoutesByTo {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/inbox/new-broadcast': typeof AuthenticatedInboxNewBroadcastRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -439,7 +448,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
-  '/_authenticated/inbox': typeof AuthenticatedInboxRoute
+  '/_authenticated/inbox': typeof AuthenticatedInboxRouteWithChildren
   '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -459,6 +468,7 @@ export interface FileRoutesById {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/_authenticated/inbox/new-broadcast': typeof AuthenticatedInboxNewBroadcastRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/portal/wigs'
     | '/receipt/$token'
     | '/portal/'
+    | '/inbox/new-broadcast'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/'
     | '/portal'
+    | '/inbox/new-broadcast'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
@@ -616,6 +628,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/_authenticated/'
     | '/portal/'
+    | '/_authenticated/inbox/new-broadcast'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/client-portal'
@@ -1004,6 +1017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAuditLogRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/inbox/new-broadcast': {
+      id: '/_authenticated/inbox/new-broadcast'
+      path: '/new-broadcast'
+      fullPath: '/inbox/new-broadcast'
+      preLoaderRoute: typeof AuthenticatedInboxNewBroadcastRouteImport
+      parentRoute: typeof AuthenticatedInboxRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1027,6 +1047,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedInboxRouteChildren {
+  AuthenticatedInboxNewBroadcastRoute: typeof AuthenticatedInboxNewBroadcastRoute
+}
+
+const AuthenticatedInboxRouteChildren: AuthenticatedInboxRouteChildren = {
+  AuthenticatedInboxNewBroadcastRoute: AuthenticatedInboxNewBroadcastRoute,
+}
+
+const AuthenticatedInboxRouteWithChildren =
+  AuthenticatedInboxRoute._addFileChildren(AuthenticatedInboxRouteChildren)
 
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
@@ -1058,7 +1089,7 @@ const AuthenticatedSettingsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAppointmentsRoute: typeof AuthenticatedAppointmentsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
-  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
+  AuthenticatedInboxRoute: typeof AuthenticatedInboxRouteWithChildren
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -1072,7 +1103,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppointmentsRoute: AuthenticatedAppointmentsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
-  AuthenticatedInboxRoute: AuthenticatedInboxRoute,
+  AuthenticatedInboxRoute: AuthenticatedInboxRouteWithChildren,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
