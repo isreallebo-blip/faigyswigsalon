@@ -537,32 +537,74 @@ function RegisterTab() {
             <div>
               <h3 className="mb-2 text-sm font-medium uppercase tracking-wider text-muted-foreground">Recent activity</h3>
               <div className="space-y-2">
-                {[...(payments.data ?? []).map((p) => ({
-                  id: `p-${p.id}`, date: p.date, amount: Number(p.amount),
-                  desc: `${p.client?.full_name ?? "Client"} payment${p.description ? ` — ${p.description}` : ""}`, type: "payment" as const,
-                })),
-                ...(txns.data ?? []).map((t) => ({
-                  id: `t-${t.id}`, date: t.date, amount: Number(t.amount),
-                  desc: t.description ?? "Bank transaction", type: "txn" as const,
-                }))]
+                {[
+                  ...(payments.data ?? []).flatMap((p) => {
+                    const amt = Number(p.amount);
+                    const refunded = (p.refunded_amount_cents ?? 0) / 100;
+                    const rows: {
+                      id: string;
+                      date: string;
+                      amount: number;
+                      desc: string;
+                      type: "payment" | "txn" | "refund" | "voided" | "disputed" | "lost";
+                    }[] = [];
+                    const baseDesc = `${p.client?.full_name ?? "Client"} payment${p.description ? ` — ${p.description}` : ""}`;
+                    if (p.status === "voided") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "voided" });
+                    } else if (p.status === "disputed") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "disputed" });
+                    } else if (p.status === "lost") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "payment" });
+                      rows.push({ id: `p-${p.id}-lost`, date: p.date, amount: -amt, desc: `${baseDesc} — dispute lost`, type: "lost" });
+                    } else {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "payment" });
+                      if (refunded > 0) {
+                        rows.push({ id: `p-${p.id}-refund`, date: p.date, amount: -refunded, desc: `${baseDesc} — refund`, type: "refund" });
+                      }
+                    }
+                    return rows;
+                  }),
+                  ...(txns.data ?? []).map((t) => ({
+                    id: `t-${t.id}`, date: t.date, amount: Number(t.amount),
+                    desc: t.description ?? "Bank transaction", type: "txn" as const,
+                  })),
+                ]
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .slice(0, 50)
-                  .map((row) => (
-                    <Card key={row.id}>
-                      <CardContent className="flex items-center justify-between gap-3 p-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={row.type === "payment" ? "secondary" : "outline"} className="capitalize">{row.type === "payment" ? "Payment" : "Manual"}</Badge>
-                            <span className="truncate text-sm">{row.desc}</span>
+                  .map((row) => {
+                    const isVoid = row.type === "voided";
+                    const isDisputed = row.type === "disputed";
+                    const isRefund = row.type === "refund" || row.type === "lost";
+                    const labelMap = {
+                      payment: "Payment",
+                      txn: "Manual",
+                      refund: "Refund",
+                      voided: "Voided",
+                      disputed: "Disputed",
+                      lost: "Dispute lost",
+                    } as const;
+                    return (
+                      <Card key={row.id} className={isDisputed ? "border-amber-500/40 bg-amber-500/5" : isVoid ? "opacity-60" : undefined}>
+                        <CardContent className="flex items-center justify-between gap-3 p-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={row.type === "payment" || row.type === "txn" ? (row.type === "payment" ? "secondary" : "outline") : "outline"}
+                                className={`capitalize ${isVoid ? "line-through" : ""} ${isDisputed ? "border-amber-500/40 text-amber-800 dark:text-amber-200" : ""}`}
+                              >
+                                {labelMap[row.type]}
+                              </Badge>
+                              <span className={`truncate text-sm ${isVoid ? "line-through text-muted-foreground" : ""}`}>{row.desc}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{format(new Date(row.date), "MMM d, yyyy")}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{format(new Date(row.date), "MMM d, yyyy")}</p>
-                        </div>
-                        <div className={`tabular-nums ${row.amount >= 0 ? "text-foreground" : "text-destructive"}`}>
-                          {row.amount >= 0 ? "+" : "−"}${Math.abs(row.amount).toLocaleString()}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <div className={`tabular-nums ${isVoid || isDisputed ? "text-muted-foreground line-through" : isRefund ? "text-destructive" : row.amount >= 0 ? "text-foreground" : "text-destructive"}`}>
+                            {row.amount >= 0 ? "+" : "−"}${Math.abs(row.amount).toLocaleString()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 {!(payments.data?.length || txns.data?.length) && (
                   <p className="text-sm text-muted-foreground">No activity yet.</p>
                 )}
