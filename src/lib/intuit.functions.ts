@@ -586,9 +586,10 @@ export const runPaymentsHealthCheck = createServerFn({ method: "POST" })
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const { data: recent } = await supabaseAdmin
-        .from("payment_actions")
-        .select("created_at, action_type")
-        .in("action_type", ["charge", "test_charge"])
+        .from("payment_transactions")
+        .select("created_at")
+        .eq("provider", "intuit")
+        .not("intuit_charge_id", "is", null)
         .gte("created_at", thirtyDaysAgo)
         .order("created_at", { ascending: false })
         .limit(1);
