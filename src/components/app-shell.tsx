@@ -178,6 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
               <Icon className="h-4 w-4" />
               <span>{item.label}</span>
+              {item.to === "/inbox" && <UnreadBadge count={unreadInbox} />}
             </Link>
           );
         })}
