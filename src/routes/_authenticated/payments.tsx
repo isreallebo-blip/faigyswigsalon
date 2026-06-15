@@ -392,7 +392,7 @@ function PaymentDialog({
             amountCents={Math.round((Number(form.watch("amount")) || 0) * 100)}
             description={form.watch("description") || null}
             triggerLabel="Charge card for"
-            onCharged={async (r) => {
+            onCharged={async (r: ChargeResult) => {
               const v = form.getValues();
               const { data, error } = await supabase
                 .from("payments")
