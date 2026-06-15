@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,6 +16,8 @@ import {
   HardDrive,
   KeyRound,
   Send,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,11 @@ import {
   sendTestEmail,
   type HealthResult,
 } from "@/lib/system-health.functions";
+import {
+  runPaymentsHealthCheck,
+  runPaymentsTestCharge,
+  type PaymentsHealthResult,
+} from "@/lib/intuit.functions";
 import { useMyProfile } from "@/lib/use-profile";
 import { logAudit } from "@/lib/audit";
 
@@ -45,6 +52,7 @@ export const Route = createFileRoute("/_authenticated/settings/system-health")({
   },
   component: SystemHealthPage,
 });
+
 
 const DEFAULT_TEST_SMS =
   "Hi, this is a test message from Faigy's Wig Salon. If you received this, your SMS integration is working correctly! — Faigy's Wig Salon";
