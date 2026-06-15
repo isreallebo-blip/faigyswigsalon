@@ -398,6 +398,193 @@ function SystemHealthPage() {
           onRecheck={() => recheck("env")}
         />
       </div>
+
+      <QuickBooksPaymentsHealthCard />
     </div>
   );
 }
+
+function QuickBooksPaymentsHealthCard() {
+  const runFn = useServerFn(runPaymentsHealthCheck);
+  const testFn = useServerFn(runPaymentsTestCharge);
+
+  const q = useQuery<PaymentsHealthResult>({
+    queryKey: ["payments-health"],
+    queryFn: () => runFn(),
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  const r = q.data;
+  const loading = q.isFetching;
+
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [zip, setZip] = useState("");
+  const [amountStr, setAmountStr] = useState("1.00");
+  const [result, setResult] = useState<{ chargeId: string; refundId: string | null; amount: string; refundError: string | null } | null>(null);
+
+  const testMut = useMutation({
+    mutationFn: async () => {
+      const m = expiry.match(/^(\d{1,2})\s*\/\s*(\d{2,4})$/);
+      if (!m) throw new Error("Expiry must be MM/YY");
+      const month = parseInt(m[1], 10);
+      let year = parseInt(m[2], 10);
+      if (year < 100) year += 2000;
+      const amountCents = Math.round(parseFloat(amountStr) * 100);
+      if (!Number.isFinite(amountCents) || amountCents < 100 || amountCents > 500) {
+        throw new Error("Amount must be between $1.00 and $5.00");
+      }
+      return testFn({
+        data: {
+          cardNumber: cardNumber.replace(/\s+/g, ""),
+          expMonth: month,
+          expYear: year,
+          cvv: cvv.trim(),
+          postalCode: zip.trim(),
+          amountCents,
+        },
+      });
+    },
+    onSuccess: async (res) => {
+      setResult({
+        chargeId: res.chargeId,
+        refundId: res.refundId,
+        amount: res.amount,
+        refundError: res.refundError,
+      });
+      toast.success("Test charge complete");
+      await logAudit({
+        action: "create",
+        module: "payment",
+        summary: `Ran a test charge of $${res.amount} and immediate refund (charge ${res.chargeId}${res.refundId ? `, refund ${res.refundId}` : ""})`,
+      });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Test failed"),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CreditCard className="h-4 w-4 text-muted-foreground" />
+          QuickBooks Payments
+        </CardTitle>
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <Badge variant="secondary" className="gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Checking…
+            </Badge>
+          ) : r?.overall === "healthy" ? (
+            <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
+              <CheckCircle2 className="h-3 w-3" /> Connected
+            </Badge>
+          ) : r?.overall === "not_connected" ? (
+            <Badge variant="secondary" className="gap-1">Not Connected</Badge>
+          ) : r?.overall === "error" ? (
+            <Badge variant="destructive" className="gap-1">
+              <XCircle className="h-3 w-3" /> Error
+            </Badge>
+          ) : (
+            <Badge variant="outline">Unknown</Badge>
+          )}
+          <Button size="sm" variant="ghost" onClick={() => q.refetch()} disabled={loading}>
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            <span className="ml-1">Recheck</span>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm">{loading ? "Checking…" : r?.message ?? "—"}</p>
+
+        {r?.connected && r.checks.length > 0 && (
+          <ul className="text-xs space-y-1">
+            {r.checks.map((c) => (
+              <li key={c.key} className="flex items-center gap-2">
+                {c.status === "ok" ? (
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                ) : c.status === "fail" ? (
+                  <XCircle className="h-3 w-3 text-destructive" />
+                ) : (
+                  <AlertTriangle className="h-3 w-3 text-muted-foreground" />
+                )}
+                <span className="text-muted-foreground">{c.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Last checked: {r?.checkedAt ? new Date(r.checkedAt).toLocaleString() : "—"}
+        </p>
+
+        {r?.overall === "not_connected" && (
+          <Button asChild size="sm">
+            <Link to="/settings/quickbooks">
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Go to QuickBooks Settings
+            </Link>
+          </Button>
+        )}
+
+        {r?.connected && (
+          <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+            <p className="text-sm font-medium">Test a real charge</p>
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+              <AlertTriangle className="inline h-3 w-3 mr-1" />
+              This will place a real charge on a real card. It will be refunded automatically immediately after. Use a card you control.
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="tc-card" className="text-xs">Card number</Label>
+                <Input id="tc-card" inputMode="numeric" autoComplete="off" placeholder="4111 1111 1111 1111" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tc-exp" className="text-xs">Expiry (MM/YY)</Label>
+                <Input id="tc-exp" inputMode="numeric" autoComplete="off" placeholder="12/28" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tc-cvv" className="text-xs">CVV</Label>
+                <Input id="tc-cvv" inputMode="numeric" autoComplete="off" placeholder="123" value={cvv} onChange={(e) => setCvv(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tc-zip" className="text-xs">Billing zip</Label>
+                <Input id="tc-zip" inputMode="numeric" autoComplete="off" placeholder="94043" value={zip} onChange={(e) => setZip(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tc-amt" className="text-xs">Amount ($1.00–$5.00)</Label>
+                <Input id="tc-amt" inputMode="decimal" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} />
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => { setResult(null); testMut.mutate(); }}
+              disabled={testMut.isPending || !cardNumber || !expiry || !cvv || !zip || !amountStr}
+            >
+              {testMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Run Test Charge
+            </Button>
+
+            {result && (
+              <div className="text-xs space-y-1 rounded-md border bg-background p-2">
+                <p className="text-emerald-600">✅ Charge successful — Transaction ID: <code className="font-mono">{result.chargeId}</code></p>
+                {result.refundId ? (
+                  <p className="text-emerald-600">
+                    ✅ Refund submitted — Transaction ID: <code className="font-mono">{result.refundId}</code>. Will appear on card in 3–7 business days.
+                  </p>
+                ) : (
+                  <p className="text-destructive">⚠️ Refund failed: {result.refundError ?? "unknown"}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
