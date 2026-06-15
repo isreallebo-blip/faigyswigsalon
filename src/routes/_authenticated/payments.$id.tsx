@@ -142,6 +142,26 @@ function PaymentDetailPage() {
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Refunded</p>
             <p>${((p.refunded_amount_cents ?? 0) / 100).toFixed(2)}</p>
           </div>
+          {p.transaction && (
+            <div className="sm:col-span-2 rounded-md border bg-muted/30 p-3 space-y-1 text-xs">
+              <p className="font-medium text-sm">Card transaction</p>
+              {p.transaction.payment_method && (
+                <p>
+                  Card: {p.transaction.payment_method.card_brand ?? "Card"} ending in{" "}
+                  {p.transaction.payment_method.last4 ?? "????"}
+                  {p.transaction.payment_method.exp_month && p.transaction.payment_method.exp_year
+                    ? ` (exp ${String(p.transaction.payment_method.exp_month).padStart(2, "0")}/${String(p.transaction.payment_method.exp_year).slice(-2)})`
+                    : ""}
+                </p>
+              )}
+              {p.transaction.intuit_charge_id && (
+                <p>QuickBooks Charge ID: <code className="font-mono">{p.transaction.intuit_charge_id}</code></p>
+              )}
+              {p.transaction.intuit_tid && (
+                <p>QuickBooks Transaction ID (TID): <code className="font-mono">{p.transaction.intuit_tid}</code></p>
+              )}
+            </div>
+          )}
           {p.description && (
             <div className="sm:col-span-2">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Description</p>
