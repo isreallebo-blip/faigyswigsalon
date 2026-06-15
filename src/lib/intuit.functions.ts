@@ -41,6 +41,20 @@ export const getIntuitStatus = createServerFn({ method: "GET" })
     };
   });
 
+// Lightweight connectivity flag for the staff card-charging UI. Any
+// authenticated staff member can read it (no admin gate) so they know
+// whether to show card-entry forms vs. the "not connected" notice.
+export const getPaymentsConnectivity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { data } = await supabaseAdmin
+      .from("intuit_connections")
+      .select("realm_id")
+      .eq("provider", "intuit_payments")
+      .maybeSingle();
+    return { connected: !!data };
+  });
+
 export const getIntuitAuthorizeUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
