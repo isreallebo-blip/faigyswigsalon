@@ -717,4 +717,363 @@ export const runPaymentsTestCharge = createServerFn({ method: "POST" })
     };
   });
 
+// ---- Card management actions (staff UI) ----
+
+const SetDefaultInput = z.object({ paymentMethodId: z.string().uuid() });
+export const setDefaultPaymentMethod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => SetDefaultInput.parse(d))
+  .handler(async ({ data }) => {
+    const { data: pm, error } = await supabaseAdmin
+      .from("payment_methods")
+      .select("client_id")
+      .eq("id", data.paymentMethodId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!pm) throw new Error("Card not found");
+    await supabaseAdmin.from("payment_methods").update({ is_default: false }).eq("client_id", pm.client_id);
+    const { error: e2 } = await supabaseAdmin
+      .from("payment_methods")
+      .update({ is_default: true })
+      .eq("id", data.paymentMethodId);
+    if (e2) throw e2;
+    return { ok: true };
+  });
+
+const RemoveCardInput = z.object({ paymentMethodId: z.string().uuid() });
+export const removePaymentMethod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => RemoveCardInput.parse(d))
+  .handler(async ({ data }) => {
+    const { error } = await supabaseAdmin
+      .from("payment_methods")
+      .delete()
+      .eq("id", data.paymentMethodId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// ---- Tokenize on server (card sent over TLS, never persisted) ----
+
+const CardFieldsSchema = z.object({
+  cardNumber: z.string().trim().regex(/^\d{12,19}$/, "Invalid card number"),
+  expMonth: z.number().int().min(1).max(12),
+  expYear: z.number().int().min(2024).max(2099),
+  cvv: z.string().trim().regex(/^\d{3,4}$/, "Invalid CVV"),
+  cardholderName: z.string().trim().min(1).max(200),
+  postalCode: z.string().trim().min(3).max(12),
+});
+
+function inferBrand(num: string): string | null {
+  if (/^4/.test(num)) return "Visa";
+  if (/^(5[1-5]|2[2-7])/.test(num)) return "MasterCard";
+  if (/^3[47]/.test(num)) return "Amex";
+  if (/^6(011|5)/.test(num)) return "Discover";
+  return null;
+}
+
+async function intuitTokenize(card: z.infer<typeof CardFieldsSchema>): Promise<string> {
+  const { getValidConnection, getPaymentsBaseUrl } = await import("@/lib/intuit.server");
+  const conn = await getValidConnection();
+  const res = await fetch(`${getPaymentsBaseUrl(conn.environment)}/quickbooks/v4/payments/tokens`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${conn.access_token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "request-Id": crypto.randomUUID(),
+    },
+    body: JSON.stringify({
+      card: {
+        number: card.cardNumber,
+        expMonth: String(card.expMonth).padStart(2, "0"),
+        expYear: String(card.expYear),
+        cvc: card.cvv,
+        name: card.cardholderName,
+        address: { postalCode: card.postalCode, country: "US" },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Tokenization failed (${res.status}): ${txt.slice(0, 300)}`);
+  }
+  const json = (await res.json()) as { value?: string };
+  if (!json.value) throw new Error("Tokenization returned no token value");
+  return json.value;
+}
+
+const SaveNewCardInput = CardFieldsSchema.extend({
+  clientId: z.string().uuid(),
+  customerEmail: z.string().trim().email().max(255).optional().nullable(),
+  setDefault: z.boolean().optional(),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
+});
+
+export const saveNewCardFlow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => SaveNewCardInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { paymentsFetch, getValidConnection, verifyTurnstile } = await import("@/lib/intuit.server");
+    await verifyTurnstile(data.turnstileToken);
+    const conn = await getValidConnection();
+    const token = await intuitTokenize(data);
+    const vaulted = await paymentsFetch<{
+      id: string;
+      number?: string;
+      expMonth?: string;
+      expYear?: string;
+      name?: string;
+      cardType?: string;
+    }>(`/quickbooks/v4/customers/${encodeURIComponent(conn.realm_id)}/cards/createFromToken`, {
+      method: "POST",
+      body: { value: token },
+    });
+
+    const last4 = data.cardNumber.slice(-4);
+    const brand = vaulted.cardType ?? inferBrand(data.cardNumber);
+
+    if (data.setDefault) {
+      await supabaseAdmin
+        .from("payment_methods")
+        .update({ is_default: false })
+        .eq("client_id", data.clientId);
+    }
+
+    const { data: row, error } = await supabaseAdmin
+      .from("payment_methods")
+      .insert({
+        client_id: data.clientId,
+        intuit_customer_id: conn.realm_id,
+        intuit_payment_method_id: vaulted.id,
+        cardholder_name: data.cardholderName,
+        customer_email: data.customerEmail ?? null,
+        card_brand: brand,
+        last4,
+        exp_month: data.expMonth,
+        exp_year: data.expYear,
+        is_default: !!data.setDefault,
+        created_by: context.userId,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    return { ok: true, paymentMethod: row };
+  });
+
+const ChargeNewCardInput = CardFieldsSchema.extend({
+  clientId: z.string().uuid(),
+  amountCents: z.number().int().positive().max(99_999_999),
+  description: z.string().trim().max(500).optional().nullable(),
+  customerEmail: z.string().trim().email().max(255).optional().nullable(),
+  saveCard: z.boolean().optional(),
+  setDefault: z.boolean().optional(),
+  deviceId: z.string().trim().max(128).optional().nullable(),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
+});
+
+export const chargeNewCardFlow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ChargeNewCardInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { paymentsFetchWithMeta, paymentsFetch, getValidConnection, verifyTurnstile, buildPaymentContextFromServerFn, IntuitApiError } =
+      await import("@/lib/intuit.server");
+    await verifyTurnstile(data.turnstileToken);
+    const conn = await getValidConnection();
+    const token = await intuitTokenize(data);
+    const last4 = data.cardNumber.slice(-4);
+    const brand = inferBrand(data.cardNumber);
+
+    let savedMethodId: string | null = null;
+    if (data.saveCard) {
+      try {
+        const vaulted = await paymentsFetch<{ id: string; cardType?: string }>(
+          `/quickbooks/v4/customers/${encodeURIComponent(conn.realm_id)}/cards/createFromToken`,
+          { method: "POST", body: { value: token } },
+        );
+        if (data.setDefault) {
+          await supabaseAdmin
+            .from("payment_methods")
+            .update({ is_default: false })
+            .eq("client_id", data.clientId);
+        }
+        const { data: pmRow, error: pmErr } = await supabaseAdmin
+          .from("payment_methods")
+          .insert({
+            client_id: data.clientId,
+            intuit_customer_id: conn.realm_id,
+            intuit_payment_method_id: vaulted.id,
+            cardholder_name: data.cardholderName,
+            customer_email: data.customerEmail ?? null,
+            card_brand: vaulted.cardType ?? brand,
+            last4,
+            exp_month: data.expMonth,
+            exp_year: data.expYear,
+            is_default: !!data.setDefault,
+            created_by: context.userId,
+          })
+          .select("id")
+          .single();
+        if (pmErr) throw pmErr;
+        savedMethodId = pmRow.id;
+      } catch (e) {
+        console.error("Vault after charge failed", e);
+      }
+    }
+
+    const amount = (data.amountCents / 100).toFixed(2);
+    const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, null);
+    try {
+      const { data: charge, meta } = await paymentsFetchWithMeta<{
+        id: string;
+        status: string;
+        amount: string;
+        currency: string;
+        authCode?: string;
+      }>(`/quickbooks/v4/payments/charges`, {
+        method: "POST",
+        body: {
+          token,
+          amount,
+          currency: "USD",
+          capture: true,
+          context: paymentContext,
+          ...(data.description ? { description: data.description } : {}),
+        },
+      });
+
+      const { data: txRow, error } = await supabaseAdmin
+        .from("payment_transactions")
+        .insert({
+          client_id: data.clientId,
+          payment_method_id: savedMethodId,
+          amount_cents: data.amountCents,
+          currency: "USD",
+          intuit_charge_id: charge.id,
+          intuit_tid: meta.intuitTid,
+          status: charge.status,
+          description: data.description ?? null,
+          created_by: context.userId,
+          salon_name: "Faigy's Wig Salon",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return {
+        ok: true,
+        transaction: txRow,
+        charge,
+        intuitTid: meta.intuitTid,
+        savedMethodId,
+        last4,
+        brand: brand ?? null,
+        authCode: charge.authCode ?? null,
+      };
+    } catch (e) {
+      const tid = e instanceof IntuitApiError ? e.intuitTid : null;
+      await supabaseAdmin.from("payment_transactions").insert({
+        client_id: data.clientId,
+        payment_method_id: savedMethodId,
+        amount_cents: data.amountCents,
+        currency: "USD",
+        status: "failed",
+        intuit_tid: tid,
+        description: data.description ?? null,
+        error_message: e instanceof Error ? e.message : String(e),
+        created_by: context.userId,
+      });
+      throw e;
+    }
+  });
+
+const ChargeSavedInput = z.object({
+  paymentMethodId: z.string().uuid(),
+  amountCents: z.number().int().positive().max(99_999_999),
+  description: z.string().trim().max(500).optional().nullable(),
+  turnstileToken: z.string().min(1, "CAPTCHA required"),
+  deviceId: z.string().trim().max(128).optional().nullable(),
+});
+
+export const chargeSavedCardFlow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ChargeSavedInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { paymentsFetchWithMeta, verifyTurnstile, buildPaymentContextFromServerFn, IntuitApiError } = await import(
+      "@/lib/intuit.server"
+    );
+    await verifyTurnstile(data.turnstileToken);
+    const { data: pm, error: pmErr } = await supabaseAdmin
+      .from("payment_methods")
+      .select("id, client_id, intuit_payment_method_id, last4, card_brand")
+      .eq("id", data.paymentMethodId)
+      .maybeSingle();
+    if (pmErr) throw pmErr;
+    if (!pm) throw new Error("Saved card not found");
+
+    const amount = (data.amountCents / 100).toFixed(2);
+    const paymentContext = buildPaymentContextFromServerFn(data.deviceId ?? null, null);
+    try {
+      const { data: charge, meta } = await paymentsFetchWithMeta<{
+        id: string;
+        status: string;
+        amount: string;
+        currency: string;
+        authCode?: string;
+      }>(`/quickbooks/v4/payments/charges`, {
+        method: "POST",
+        body: {
+          cardOnFile: { id: pm.intuit_payment_method_id },
+          amount,
+          currency: "USD",
+          capture: true,
+          context: paymentContext,
+          ...(data.description ? { description: data.description } : {}),
+        },
+      });
+
+      const { data: txRow, error } = await supabaseAdmin
+        .from("payment_transactions")
+        .insert({
+          client_id: pm.client_id,
+          payment_method_id: pm.id,
+          amount_cents: data.amountCents,
+          currency: "USD",
+          intuit_charge_id: charge.id,
+          intuit_tid: meta.intuitTid,
+          status: charge.status,
+          description: data.description ?? null,
+          created_by: context.userId,
+          salon_name: "Faigy's Wig Salon",
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return {
+        ok: true,
+        transaction: txRow,
+        charge,
+        intuitTid: meta.intuitTid,
+        savedMethodId: pm.id,
+        last4: pm.last4,
+        brand: pm.card_brand,
+        authCode: charge.authCode ?? null,
+      };
+    } catch (e) {
+      const tid = e instanceof IntuitApiError ? e.intuitTid : null;
+      await supabaseAdmin.from("payment_transactions").insert({
+        client_id: pm.client_id,
+        payment_method_id: pm.id,
+        amount_cents: data.amountCents,
+        currency: "USD",
+        status: "failed",
+        intuit_tid: tid,
+        description: data.description ?? null,
+        error_message: e instanceof Error ? e.message : String(e),
+        created_by: context.userId,
+      });
+      throw e;
+    }
+  });
+
+
 
