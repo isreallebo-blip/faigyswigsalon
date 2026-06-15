@@ -384,6 +384,41 @@ function PaymentDialog({
           <Label>Description</Label>
           <Textarea rows={2} {...form.register("description")} />
         </div>
+
+        {!payment && form.watch("method") === "credit_card" && form.watch("client_id") && (
+          <CardChargeSection
+            clientId={form.watch("client_id") ?? null}
+            amountCents={Math.round((Number(form.watch("amount")) || 0) * 100)}
+            description={form.watch("description") || null}
+            triggerLabel="Charge card for"
+            onCharged={async (r) => {
+              const v = form.getValues();
+              const { data, error } = await supabase
+                .from("payments")
+                .insert({
+                  client_id: v.client_id || null,
+                  bank_account_id: v.bank_account_id || null,
+                  date: v.date,
+                  amount: r.amountCents / 100,
+                  method: "credit_card",
+                  category: v.category,
+                  description: v.description || null,
+                  payment_transaction_id: r.transactionId,
+                })
+                .select()
+                .single();
+              if (error) { toast.error(error.message); return; }
+              await logAudit({
+                action: "create", module: "payment", recordId: data.id,
+                recordLabel: `$${data.amount} on ${data.date}`,
+                summary: `Card charge of $${data.amount} (charge ${r.chargeId})`,
+                after: data as unknown as Record<string, unknown>,
+              });
+              toast.success("Payment recorded");
+              onSaved();
+            }}
+          />
+        )}
         {payment && !payment.voided_at && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
             <Label className="text-destructive">Void this payment</Label>
