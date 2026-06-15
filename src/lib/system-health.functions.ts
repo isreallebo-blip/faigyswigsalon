@@ -178,19 +178,50 @@ export const sendTestEmail = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ to: z.string().trim().email() }).parse(d))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context.userId);
-    const key = process.env.RESEND_API_KEY;
-    if (!key) return { ok: false as const, error: "RESEND_API_KEY is not configured" };
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Faigy's Wig Salon <noreply@faigyswigsalon.com>",
-        to: [data.to],
-        subject: "Test email from Faigy's Wig Salon",
-        text: `Hi,\n\nThis is a test email from Faigy's Wig Salon CRM. If you received this, your email integration is working correctly.\n\nSent from: noreply@faigyswigsalon.com\n\n— Faigy's Wig Salon`,
-      }),
+    const messageId = crypto.randomUUID();
+    const subject = "Test email from Faigy's Wig Salon";
+    const html = `<!doctype html><html><body style="margin:0;background:#faf6ef;font-family:Georgia,serif;color:#2a2218;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#faf6ef;padding:32px 0;">
+<tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #e8dcc4;border-radius:6px;">
+<tr><td style="background:#bfa15a;color:#fff;padding:20px;text-align:center;font-size:20px;letter-spacing:1px;">Faigy's Wig Salon</td></tr>
+<tr><td style="padding:24px;font-size:15px;line-height:1.6;">
+Hi,<br/><br/>This is a test email from Faigy's Wig Salon CRM. If you received this, your email integration is working correctly.<br/><br/>Sent from: noreply@faigyswigsalon.com<br/><br/>— Faigy's Wig Salon
+</td></tr></table></td></tr></table></body></html>`;
+    const text = `Hi,\n\nThis is a test email from Faigy's Wig Salon CRM. If you received this, your email integration is working correctly.\n\nSent from: noreply@faigyswigsalon.com\n\n— Faigy's Wig Salon`;
+
+    await supabaseAdmin.from("email_send_log").insert({
+      message_id: messageId,
+      template_name: "system_health_test",
+      recipient_email: data.to,
+      status: "pending",
     });
-    const json = await res.json().catch(() => ({} as { id?: string; message?: string; name?: string }));
-    if (!res.ok) return { ok: false as const, error: json.message ?? json.name ?? `Resend ${res.status}` };
-    return { ok: true as const, id: json.id ?? null };
+
+    const { error } = await supabaseAdmin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: messageId,
+        idempotency_key: messageId,
+        to: data.to,
+        from: "Faigy's Wig Salon <noreply@faigyswigsalon.com>",
+        sender_domain: "notify.faigyswigsalon.com",
+        subject,
+        html,
+        text,
+        purpose: "transactional",
+        label: "system_health_test",
+        queued_at: new Date().toISOString(),
+      },
+    });
+
+    if (error) {
+      await supabaseAdmin.from("email_send_log").insert({
+        message_id: messageId,
+        template_name: "system_health_test",
+        recipient_email: data.to,
+        status: "failed",
+        error_message: error.message,
+      });
+      return { ok: false as const, error: error.message };
+    }
+    return { ok: true as const, id: messageId };
   });
