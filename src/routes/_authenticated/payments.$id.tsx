@@ -28,7 +28,7 @@ function PaymentDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("*, client:client_id(id, full_name, display_id), account:bank_account_id(name)")
+        .select("*, client:client_id(id, full_name, display_id), account:bank_account_id(name), transaction:payment_transaction_id(id, intuit_charge_id, intuit_tid, status, payment_method:payment_method_id(card_brand, last4, exp_month, exp_year))")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -36,6 +36,13 @@ function PaymentDetailPage() {
         | (Payment & {
             client: { id: string; full_name: string; display_id: string } | null;
             account: { name: string } | null;
+            transaction: {
+              id: string;
+              intuit_charge_id: string | null;
+              intuit_tid: string | null;
+              status: string;
+              payment_method: { card_brand: string | null; last4: string | null; exp_month: number | null; exp_year: number | null } | null;
+            } | null;
           })
         | null;
     },
