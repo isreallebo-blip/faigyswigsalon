@@ -126,30 +126,3 @@ function RepairProgress({ status }: { status: string }) {
     </div>
   );
 }
-
-function RepairProgress() {
-  const steps = ["Sent to repair shop", "In progress", "Ready for pickup"];
-  const current = 1; // wig is at repair shop & in progress
-  return (
-    <div className="flex items-center gap-2">
-      {steps.map((s, i) => (
-        <div key={s} className="flex-1">
-          <div
-            className="h-1 rounded-full"
-            style={{
-              background: i <= current ? "oklch(0.65 0.13 75)" : "oklch(0.9 0.02 80)",
-            }}
-          />
-          <p
-            className="mt-1.5 text-[10px] uppercase tracking-wider"
-            style={{
-              color: i <= current ? "oklch(0.45 0.1 75)" : "oklch(0.55 0.02 60)",
-            }}
-          >
-            {s}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
