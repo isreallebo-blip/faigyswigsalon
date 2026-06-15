@@ -556,9 +556,12 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             )}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-          Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <ChargeCardDialog clientId={clientId} clientName={c.full_name} />
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+        </div>
       </div>
 
       <ClientProfileTabs clientId={clientId} client={c}>
