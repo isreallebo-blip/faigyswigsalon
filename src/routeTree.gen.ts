@@ -44,6 +44,7 @@ import { Route as ApiPublicTwilioInboundRouteImport } from './routes/api/public/
 import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
 import { Route as ApiPublicResendInboundRouteImport } from './routes/api/public/resend-inbound'
 import { Route as ApiPublicResendEventsRouteImport } from './routes/api/public/resend-events'
+import { Route as ApiPublicProcessBroadcastsRouteImport } from './routes/api/public/process-broadcasts'
 import { Route as ApiPublicConfirmEmailChangeRouteImport } from './routes/api/public/confirm-email-change'
 import { Route as ApiIntuitTokenizeCardRouteImport } from './routes/api/intuit/tokenize-card'
 import { Route as ApiIntuitRefundRouteImport } from './routes/api/intuit/refund'
@@ -236,6 +237,12 @@ const ApiPublicResendEventsRoute = ApiPublicResendEventsRouteImport.update({
   path: '/api/public/resend-events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicProcessBroadcastsRoute =
+  ApiPublicProcessBroadcastsRouteImport.update({
+    id: '/api/public/process-broadcasts',
+    path: '/api/public/process-broadcasts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicConfirmEmailChangeRoute =
   ApiPublicConfirmEmailChangeRouteImport.update({
     id: '/api/public/confirm-email-change',
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/api/intuit/refund': typeof ApiIntuitRefundRoute
   '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
+  '/api/public/process-broadcasts': typeof ApiPublicProcessBroadcastsRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -409,6 +417,7 @@ export interface FileRoutesByTo {
   '/api/intuit/refund': typeof ApiIntuitRefundRoute
   '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
+  '/api/public/process-broadcasts': typeof ApiPublicProcessBroadcastsRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/api/intuit/refund': typeof ApiIntuitRefundRoute
   '/api/intuit/tokenize-card': typeof ApiIntuitTokenizeCardRoute
   '/api/public/confirm-email-change': typeof ApiPublicConfirmEmailChangeRoute
+  '/api/public/process-broadcasts': typeof ApiPublicProcessBroadcastsRoute
   '/api/public/resend-events': typeof ApiPublicResendEventsRoute
   '/api/public/resend-inbound': typeof ApiPublicResendInboundRoute
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/intuit/refund'
     | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
+    | '/api/public/process-broadcasts'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/intuit/refund'
     | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
+    | '/api/public/process-broadcasts'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -616,6 +628,7 @@ export interface FileRouteTypes {
     | '/api/intuit/refund'
     | '/api/intuit/tokenize-card'
     | '/api/public/confirm-email-change'
+    | '/api/public/process-broadcasts'
     | '/api/public/resend-events'
     | '/api/public/resend-inbound'
     | '/api/public/send-reminders'
@@ -643,6 +656,7 @@ export interface RootRouteChildren {
   ApiIntuitRefundRoute: typeof ApiIntuitRefundRoute
   ApiIntuitTokenizeCardRoute: typeof ApiIntuitTokenizeCardRoute
   ApiPublicConfirmEmailChangeRoute: typeof ApiPublicConfirmEmailChangeRoute
+  ApiPublicProcessBroadcastsRoute: typeof ApiPublicProcessBroadcastsRoute
   ApiPublicResendEventsRoute: typeof ApiPublicResendEventsRoute
   ApiPublicResendInboundRoute: typeof ApiPublicResendInboundRoute
   ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
@@ -900,6 +914,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicResendEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/process-broadcasts': {
+      id: '/api/public/process-broadcasts'
+      path: '/api/public/process-broadcasts'
+      fullPath: '/api/public/process-broadcasts'
+      preLoaderRoute: typeof ApiPublicProcessBroadcastsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/confirm-email-change': {
       id: '/api/public/confirm-email-change'
       path: '/api/public/confirm-email-change'
@@ -1109,6 +1130,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIntuitRefundRoute: ApiIntuitRefundRoute,
   ApiIntuitTokenizeCardRoute: ApiIntuitTokenizeCardRoute,
   ApiPublicConfirmEmailChangeRoute: ApiPublicConfirmEmailChangeRoute,
+  ApiPublicProcessBroadcastsRoute: ApiPublicProcessBroadcastsRoute,
   ApiPublicResendEventsRoute: ApiPublicResendEventsRoute,
   ApiPublicResendInboundRoute: ApiPublicResendInboundRoute,
   ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
