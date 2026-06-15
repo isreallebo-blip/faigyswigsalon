@@ -165,30 +165,50 @@ function PaymentsTab() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {list.data.map((p) => (
-            <button key={p.id} onClick={() => setEditing(p)} className="w-full text-left">
-              <Card className={`transition hover:border-gold ${p.voided_at ? "opacity-60" : ""}`}>
+          {list.data.map((p) => {
+            const isVoided = p.status === "voided";
+            const amountCents = Math.round(Number(p.amount) * 100);
+            return (
+              <Card key={p.id} className={`transition hover:border-gold ${isVoided ? "opacity-60" : ""}`}>
                 <CardContent className="flex items-center justify-between gap-4 p-4">
-                  <div className="min-w-0">
+                  <button onClick={() => setEditing(p)} className="min-w-0 flex-1 text-left">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="capitalize">{p.category.replace("_", " ")}</Badge>
-                      {p.voided_at && <Badge variant="destructive">Voided</Badge>}
-                      <span className={`font-medium ${p.voided_at ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
+                      <PaymentStatusBadge
+                        status={p.status}
+                        refundedCents={p.refunded_amount_cents}
+                        amountCents={amountCents}
+                      />
+                      <span className={`font-medium ${isVoided ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
                       {p.client?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{p.client.display_id}</span>}
                       <span className="text-xs text-muted-foreground capitalize">· {p.method.replace("_", " ")}</span>
                       {p.account && <span className="text-xs text-muted-foreground">→ {p.account.name}</span>}
                     </div>
                     {p.description && <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>}
                     {p.void_reason && <p className="mt-1 text-xs text-destructive">Void reason: {p.void_reason}</p>}
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-display text-xl tabular-nums ${p.voided_at ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
+                    {p.dispute_reason && p.status === "disputed" && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Disputed: {p.dispute_reason}</p>
+                    )}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className={`font-display text-xl tabular-nums ${isVoided ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
+                    </div>
+                    <Link
+                      to="/payments/$id"
+                      params={{ id: p.id }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      title="Open details"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                    <PaymentActionsMenu payment={p} onChanged={() => qc.invalidateQueries({ queryKey: ["payments"] })} />
                   </div>
                 </CardContent>
               </Card>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
