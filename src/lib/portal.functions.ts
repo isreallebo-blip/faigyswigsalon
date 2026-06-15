@@ -39,6 +39,24 @@ function clientRepairStatus(status: string | null | undefined): string {
   }
 }
 
+function mapRepairStatusForClient(status: string | null | undefined): string | null {
+  if (!status) return null;
+  switch (status) {
+    case "sent_to_vendor":
+      return "Sent to Vendor";
+    case "in_progress":
+      return "In Progress";
+    case "returned":
+    case "ready":
+      return "Returned";
+    case "issue":
+      return "Issue — Needs Review";
+    case "completed":
+      return null;
+    default:
+      return null;
+  }
+
 async function logPortalActivity(opts: {
   userId: string;
   userEmail: string | null;
