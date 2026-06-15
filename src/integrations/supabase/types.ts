@@ -959,6 +959,63 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_actions: {
+        Row: {
+          action: string
+          amount_cents: number | null
+          created_at: string
+          id: string
+          intuit_tid: string | null
+          metadata: Json
+          notes: string | null
+          payment_id: string | null
+          payment_transaction_id: string | null
+          performed_by: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          amount_cents?: number | null
+          created_at?: string
+          id?: string
+          intuit_tid?: string | null
+          metadata?: Json
+          notes?: string | null
+          payment_id?: string | null
+          payment_transaction_id?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          amount_cents?: number | null
+          created_at?: string
+          id?: string
+          intuit_tid?: string | null
+          metadata?: Json
+          notes?: string | null
+          payment_id?: string | null
+          payment_transaction_id?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_actions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_actions_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           card_brand: string | null
@@ -1034,6 +1091,7 @@ export type Database = {
           intuit_charge_id: string | null
           intuit_refund_id: string | null
           intuit_tid: string | null
+          is_test: boolean
           payment_method_id: string | null
           provider: string
           receipt_email: string | null
@@ -1058,6 +1116,7 @@ export type Database = {
           intuit_charge_id?: string | null
           intuit_refund_id?: string | null
           intuit_tid?: string | null
+          is_test?: boolean
           payment_method_id?: string | null
           provider?: string
           receipt_email?: string | null
@@ -1082,6 +1141,7 @@ export type Database = {
           intuit_charge_id?: string | null
           intuit_refund_id?: string | null
           intuit_tid?: string | null
+          is_test?: boolean
           payment_method_id?: string | null
           provider?: string
           receipt_email?: string | null
@@ -1120,8 +1180,17 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          dispute_amount_cents: number | null
+          dispute_deadline: string | null
+          dispute_notes: string | null
+          dispute_opened_at: string | null
+          dispute_outcome: string | null
+          dispute_reason: string | null
           id: string
           method: Database["public"]["Enums"]["payment_method"]
+          refund_reason: string | null
+          refunded_amount_cents: number
+          status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
           void_reason: string | null
           voided_at: string | null
@@ -1135,8 +1204,17 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          dispute_amount_cents?: number | null
+          dispute_deadline?: string | null
+          dispute_notes?: string | null
+          dispute_opened_at?: string | null
+          dispute_outcome?: string | null
+          dispute_reason?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
+          refund_reason?: string | null
+          refunded_amount_cents?: number
+          status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
           void_reason?: string | null
           voided_at?: string | null
@@ -1150,8 +1228,17 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          dispute_amount_cents?: number | null
+          dispute_deadline?: string | null
+          dispute_notes?: string | null
+          dispute_opened_at?: string | null
+          dispute_outcome?: string | null
+          dispute_reason?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
+          refund_reason?: string | null
+          refunded_amount_cents?: number
+          status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
           void_reason?: string | null
           voided_at?: string | null
@@ -1864,6 +1951,15 @@ export type Database = {
       message_direction: "inbound" | "outbound"
       payment_category: "wig_sale" | "cut" | "wash_set" | "repair" | "other"
       payment_method: "cash" | "check" | "credit_card" | "zelle" | "other"
+      payment_status:
+        | "completed"
+        | "pending"
+        | "voided"
+        | "refunded"
+        | "partially_refunded"
+        | "disputed"
+        | "lost"
+        | "failed"
       portal_account_status:
         | "not_signed_up"
         | "active"
@@ -2034,6 +2130,16 @@ export const Constants = {
       message_direction: ["inbound", "outbound"],
       payment_category: ["wig_sale", "cut", "wash_set", "repair", "other"],
       payment_method: ["cash", "check", "credit_card", "zelle", "other"],
+      payment_status: [
+        "completed",
+        "pending",
+        "voided",
+        "refunded",
+        "partially_refunded",
+        "disputed",
+        "lost",
+        "failed",
+      ],
       portal_account_status: [
         "not_signed_up",
         "active",
