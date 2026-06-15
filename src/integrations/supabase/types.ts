@@ -322,9 +322,12 @@ export type Database = {
           id: string
           recipient_count: number
           recipient_filter: Json
+          recipient_filter_summary: string | null
+          sent_at: string | null
           sent_by: string | null
           sent_by_name: string | null
           sent_count: number
+          status: string
         }
         Insert: {
           body: string
@@ -336,9 +339,12 @@ export type Database = {
           id?: string
           recipient_count?: number
           recipient_filter?: Json
+          recipient_filter_summary?: string | null
+          sent_at?: string | null
           sent_by?: string | null
           sent_by_name?: string | null
           sent_count?: number
+          status?: string
         }
         Update: {
           body?: string
@@ -350,9 +356,12 @@ export type Database = {
           id?: string
           recipient_count?: number
           recipient_filter?: Json
+          recipient_filter_summary?: string | null
+          sent_at?: string | null
           sent_by?: string | null
           sent_by_name?: string | null
           sent_count?: number
+          status?: string
         }
         Relationships: [
           {
@@ -821,6 +830,7 @@ export type Database = {
           default_assignee: string | null
           default_reply_channel: Database["public"]["Enums"]["message_channel"]
           id: number
+          sms_cost_per_segment: number
           timezone: string
           updated_at: string
         }
@@ -831,6 +841,7 @@ export type Database = {
           default_assignee?: string | null
           default_reply_channel?: Database["public"]["Enums"]["message_channel"]
           id?: number
+          sms_cost_per_segment?: number
           timezone?: string
           updated_at?: string
         }
@@ -841,6 +852,7 @@ export type Database = {
           default_assignee?: string | null
           default_reply_channel?: Database["public"]["Enums"]["message_channel"]
           id?: number
+          sms_cost_per_segment?: number
           timezone?: string
           updated_at?: string
         }
