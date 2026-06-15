@@ -42,17 +42,36 @@ async function checkTwilio(): Promise<HealthResult> {
   return { status: "healthy", message: `Connected — Account active, number ${from} verified` };
 }
 
-async function checkResend(): Promise<HealthResult> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { status: "error", message: "RESEND_API_KEY is missing" };
-  const res = await withTimeout(fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` } }));
-  if (res.status === 401 || res.status === 403) return { status: "error", message: "Invalid API key" };
-  if (!res.ok) return { status: "error", message: `Resend check failed (${res.status})` };
-  const body = (await res.json().catch(() => ({}))) as { data?: Array<{ name: string; status: string }> };
-  const domains = body.data ?? [];
-  const verified = domains.find((d) => d.status === "verified");
-  if (!verified && domains.length > 0) return { status: "warning", message: "Domain not verified in Resend" };
-  return { status: "healthy", message: "Connected — API key valid, sending from noreply@faigyswigsalon.com" };
+async function checkEmailSystem(): Promise<HealthResult> {
+  const totalRes = (await withTimeout(
+    supabaseAdmin
+      .from("email_send_log")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "sent") as unknown as Promise<{ error: { message: string } | null; count: number | null }>,
+  ));
+  if (totalRes.error) {
+    return { status: "error", message: "Failed — Cannot reach email_send_log", detail: totalRes.error.message };
+  }
+  const lastRes = (await withTimeout(
+    supabaseAdmin
+      .from("email_send_log")
+      .select("created_at")
+      .eq("status", "sent")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle() as unknown as Promise<{ data: { created_at: string } | null; error: { message: string } | null }>,
+  ));
+  if (lastRes.error) {
+    return { status: "error", message: "Failed — Cannot reach email_send_log", detail: lastRes.error.message };
+  }
+  const lastSent = lastRes.data?.created_at
+    ? new Date(lastRes.data.created_at).toLocaleString()
+    : "never";
+  return {
+    status: "healthy",
+    message: "Connected — Lovable email system active. Sending from noreply@faigyswigsalon.com",
+    detail: `Total sent: ${totalRes.count ?? 0} · Last sent: ${lastSent}`,
+  };
 }
 
 async function checkDb(): Promise<HealthResult> {
@@ -83,7 +102,6 @@ const REQUIRED_ENV = [
   "TWILIO_ACCOUNT_SID",
   "TWILIO_AUTH_TOKEN",
   "TWILIO_FROM_NUMBER",
-  "RESEND_API_KEY",
   "RESEND_INBOUND_SECRET",
   "VITE_SUPABASE_URL",
   "VITE_SUPABASE_ANON_KEY",
@@ -118,7 +136,7 @@ export const runHealthChecks = createServerFn({ method: "GET" })
     await ensureAdmin(context.userId);
     const [twilio, resend, db, auth, storage] = await Promise.all([
       safe("twilio", checkTwilio()),
-      safe("resend", checkResend()),
+      safe("email", checkEmailSystem()),
       safe("db", checkDb()),
       safe("auth", checkAuth()),
       safe("storage", checkStorage()),

@@ -308,7 +308,7 @@ function SystemHealthPage() {
         </CheckCard>
 
         <CheckCard
-          title="Resend Email"
+          title="Email System"
           icon={Mail}
           result={checks?.resend}
           loading={loading}
