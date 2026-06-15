@@ -175,7 +175,7 @@ async function recordAction(input: {
     reason: input.reason ?? null,
     notes: input.notes ?? null,
     performed_by: user?.id ?? null,
-    metadata: input.metadata ?? {},
+    metadata: (input.metadata ?? {}) as never,
   });
   if (error) throw error;
 }
@@ -323,7 +323,7 @@ function RefundDialog({
         notes: notes.trim() || undefined,
       });
       await logAudit({
-        action: "refund",
+        action: "update",
         module: "payment",
         recordId: payment.id,
         recordLabel: `$${(cents / 100).toFixed(2)}`,
@@ -435,7 +435,7 @@ function DisputeDialog({
         metadata: { opened_at: openedAt, deadline: deadline || null },
       });
       await logAudit({
-        action: "dispute",
+        action: "update",
         module: "payment",
         recordId: payment.id,
         recordLabel: `$${(cents / 100).toFixed(2)}`,
@@ -538,7 +538,7 @@ function ResolveDisputeDialog({
         notes: notes.trim() || undefined,
       });
       await logAudit({
-        action: "dispute_resolved",
+        action: "update",
         module: "payment",
         recordId: payment.id,
         recordLabel: `$${payment.amount}`,
