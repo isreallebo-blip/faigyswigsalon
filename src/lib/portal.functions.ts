@@ -56,6 +56,9 @@ function mapRepairStatusForClient(status: string | null | undefined): string | n
     default:
       return null;
   }
+}
+
+
 
 async function logPortalActivity(opts: {
   userId: string;
