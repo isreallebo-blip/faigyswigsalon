@@ -93,6 +93,27 @@ function Dashboard() {
 
   const monthTotal = revenue.data?.[revenue.data.length - 1]?.total ?? 0;
 
+  const disputes = useQuery({
+    queryKey: ["dashboard", "open-disputes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("id, amount, dispute_reason, dispute_deadline, dispute_opened_at, client:client_id(full_name)")
+        .eq("status", "disputed")
+        .order("dispute_deadline", { ascending: true, nullsFirst: false })
+        .limit(10);
+      if (error) throw error;
+      return data as Array<{
+        id: string;
+        amount: number;
+        dispute_reason: string | null;
+        dispute_deadline: string | null;
+        dispute_opened_at: string | null;
+        client: { full_name: string } | null;
+      }>;
+    },
+  });
+
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <div>
