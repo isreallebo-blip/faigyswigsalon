@@ -185,10 +185,22 @@ export const getPortalWigs = createServerFn({ method: "GET" })
     // Collect wig IDs tied to this client
     const [wfs, reps, reserved] = await Promise.all([
       supabaseAdmin.from("service_workflows").select("wig_id").eq("client_id", clientId),
-      supabaseAdmin.from("repairs").select("wig_id").eq("client_id", clientId),
+      supabaseAdmin
+        .from("repairs")
+        .select("wig_id, status, created_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false }),
       supabaseAdmin.from("wigs").select("id, display_id, style, color, hair_type, status, photos")
         .eq("reserved_for_client_id", clientId),
     ]);
+
+    // Most recent repair status per wig_id
+    const repairStatusByWig = new Map<string, string>();
+    for (const r of reps.data ?? []) {
+      if (r.wig_id && !repairStatusByWig.has(r.wig_id)) {
+        repairStatusByWig.set(r.wig_id, r.status as string);
+      }
+    }
 
     const ids = new Set<string>();
     for (const r of wfs.data ?? []) if (r.wig_id) ids.add(r.wig_id);
