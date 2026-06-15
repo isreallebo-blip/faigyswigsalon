@@ -54,17 +54,19 @@ async function resolveRecipients(filter: RecipientFilter): Promise<ClientRow[]> 
     (appts ?? []).forEach((a) => a.client_id && ids.add(a.client_id as string));
   }
   if (filter.outstandingBalance) {
+    // Approximation: clients with any non-voided payment activity. Refine when a
+    // dedicated balance column exists on clients/payments.
     const { data: pays } = await supabaseAdmin
       .from("payments")
-      .select("client_id, amount, status")
-      .neq("status", "paid");
+      .select("client_id, voided_at")
+      .is("voided_at", null);
     (pays ?? []).forEach((p) => p.client_id && ids.add(p.client_id as string));
   }
   if (filter.inRepair) {
     const { data: reps } = await supabaseAdmin
       .from("repairs")
       .select("client_id, status")
-      .in("status", ["pending", "in_progress", "sent"]);
+      .in("status", ["sent_to_vendor", "in_progress", "issue"]);
     (reps ?? []).forEach((r) => r.client_id && ids.add(r.client_id as string));
   }
   (filter.customClientIds ?? []).forEach((id) => ids.add(id));
@@ -244,18 +246,20 @@ export const createBroadcast = createServerFn({ method: "POST" })
       .eq("id", broadcast.id);
 
     await supabaseAdmin.from("audit_logs").insert({
-      actor_id: context.userId,
-      actor_email: profile?.email ?? null,
-      action: "broadcast.created",
-      target_type: "broadcast",
-      target_id: broadcast.id,
+      user_id: context.userId,
+      user_email: profile?.email ?? null,
+      user_name: senderName,
+      action: "create",
+      module: "broadcasts",
+      record_id: broadcast.id,
+      record_label: `Broadcast · ${data.channel}`,
       summary: `Broadcast to ${rows.length} recipient(s) via ${data.channel}`,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      metadata: {
+      after: {
         recipient_count: rows.length,
         channel: data.channel,
         body_preview: data.body.slice(0, 200),
         filter_summary: summarizeFilter(data.filter),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     });
 
