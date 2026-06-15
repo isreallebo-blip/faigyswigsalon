@@ -39,6 +39,7 @@ import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as ApiPublicTwilioTestRouteImport } from './routes/api/public/twilio-test'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio-status'
 import { Route as ApiPublicTwilioInboundRouteImport } from './routes/api/public/twilio-inbound'
 import { Route as ApiPublicSendRemindersRouteImport } from './routes/api/public/send-reminders'
@@ -215,6 +216,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiPublicTwilioTestRoute = ApiPublicTwilioTestRouteImport.update({
+  id: '/api/public/twilio-test',
+  path: '/api/public/twilio-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
   id: '/api/public/twilio-status',
   path: '/api/public/twilio-status',
@@ -397,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
   '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio-test': typeof ApiPublicTwilioTestRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -450,6 +457,7 @@ export interface FileRoutesByTo {
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
   '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio-test': typeof ApiPublicTwilioTestRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -507,6 +515,7 @@ export interface FileRoutesById {
   '/api/public/send-reminders': typeof ApiPublicSendRemindersRoute
   '/api/public/twilio-inbound': typeof ApiPublicTwilioInboundRoute
   '/api/public/twilio-status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio-test': typeof ApiPublicTwilioTestRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -564,6 +573,7 @@ export interface FileRouteTypes {
     | '/api/public/send-reminders'
     | '/api/public/twilio-inbound'
     | '/api/public/twilio-status'
+    | '/api/public/twilio-test'
     | '/settings/'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -617,6 +627,7 @@ export interface FileRouteTypes {
     | '/api/public/send-reminders'
     | '/api/public/twilio-inbound'
     | '/api/public/twilio-status'
+    | '/api/public/twilio-test'
     | '/settings'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/api/public/send-reminders'
     | '/api/public/twilio-inbound'
     | '/api/public/twilio-status'
+    | '/api/public/twilio-test'
     | '/_authenticated/settings/'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -701,6 +713,7 @@ export interface RootRouteChildren {
   ApiPublicSendRemindersRoute: typeof ApiPublicSendRemindersRoute
   ApiPublicTwilioInboundRoute: typeof ApiPublicTwilioInboundRoute
   ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
+  ApiPublicTwilioTestRoute: typeof ApiPublicTwilioTestRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -917,6 +930,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/'
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/api/public/twilio-test': {
+      id: '/api/public/twilio-test'
+      path: '/api/public/twilio-test'
+      fullPath: '/api/public/twilio-test'
+      preLoaderRoute: typeof ApiPublicTwilioTestRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/twilio-status': {
       id: '/api/public/twilio-status'
@@ -1203,6 +1223,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSendRemindersRoute: ApiPublicSendRemindersRoute,
   ApiPublicTwilioInboundRoute: ApiPublicTwilioInboundRoute,
   ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
+  ApiPublicTwilioTestRoute: ApiPublicTwilioTestRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
