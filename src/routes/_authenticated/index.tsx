@@ -93,6 +93,27 @@ function Dashboard() {
 
   const monthTotal = revenue.data?.[revenue.data.length - 1]?.total ?? 0;
 
+  const disputes = useQuery({
+    queryKey: ["dashboard", "open-disputes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("id, amount, dispute_reason, dispute_deadline, dispute_opened_at, client:client_id(full_name)")
+        .eq("status", "disputed")
+        .order("dispute_deadline", { ascending: true, nullsFirst: false })
+        .limit(10);
+      if (error) throw error;
+      return data as Array<{
+        id: string;
+        amount: number;
+        dispute_reason: string | null;
+        dispute_deadline: string | null;
+        dispute_opened_at: string | null;
+        client: { full_name: string } | null;
+      }>;
+    },
+  });
+
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <div>
@@ -189,6 +210,36 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {disputes.data && disputes.data.length > 0 && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="font-display text-2xl flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600" /> Open disputes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {disputes.data.map((d) => (
+              <a
+                key={d.id}
+                href={`/payments/${d.id}`}
+                className="flex items-start justify-between gap-3 rounded-md border border-amber-500/30 bg-background/60 p-3 transition hover:border-amber-500"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{d.client?.full_name ?? "Unknown client"}</div>
+                  <div className="text-xs text-muted-foreground line-clamp-1">{d.dispute_reason ?? "No reason recorded"}</div>
+                </div>
+                <div className="text-right text-xs">
+                  <div className="font-display text-lg tabular-nums">${Number(d.amount).toLocaleString()}</div>
+                  <div className="text-amber-700 dark:text-amber-300">
+                    {d.dispute_deadline ? `Due ${format(new Date(d.dispute_deadline), "MMM d")}` : "No deadline"}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

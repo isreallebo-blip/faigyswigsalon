@@ -60,6 +60,7 @@ import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes
 import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
 import { Route as AuthenticatedSettingsCalendarRouteImport } from './routes/_authenticated/settings.calendar'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
+import { Route as AuthenticatedPaymentsIdRouteImport } from './routes/_authenticated/payments.$id'
 import { Route as AuthenticatedBroadcastsNewRouteImport } from './routes/_authenticated/broadcasts.new'
 import { Route as AuthenticatedBroadcastsIdRouteImport } from './routes/_authenticated/broadcasts.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -331,6 +332,11 @@ const AuthenticatedSettingsAuditLogRoute =
     path: '/audit-log',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedPaymentsIdRoute = AuthenticatedPaymentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedPaymentsRoute,
+} as any)
 const AuthenticatedBroadcastsNewRoute =
   AuthenticatedBroadcastsNewRouteImport.update({
     id: '/broadcasts/new',
@@ -372,7 +378,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AuthenticatedClientsRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/inventory': typeof AuthenticatedInventoryRoute
-  '/payments': typeof AuthenticatedPaymentsRoute
+  '/payments': typeof AuthenticatedPaymentsRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/repairs': typeof AuthenticatedRepairsRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -391,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
+  '/payments/$id': typeof AuthenticatedPaymentsIdRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -427,7 +434,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AuthenticatedClientsRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/inventory': typeof AuthenticatedInventoryRoute
-  '/payments': typeof AuthenticatedPaymentsRoute
+  '/payments': typeof AuthenticatedPaymentsRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/repairs': typeof AuthenticatedRepairsRoute
   '/vendors': typeof AuthenticatedVendorsRoute
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
+  '/payments/$id': typeof AuthenticatedPaymentsIdRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -485,7 +493,7 @@ export interface FileRoutesById {
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
-  '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
+  '/_authenticated/payments': typeof AuthenticatedPaymentsRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/repairs': typeof AuthenticatedRepairsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -505,6 +513,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/_authenticated/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/_authenticated/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
+  '/_authenticated/payments/$id': typeof AuthenticatedPaymentsIdRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/calendar': typeof AuthenticatedSettingsCalendarRoute
   '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
@@ -564,6 +573,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/broadcasts/$id'
     | '/broadcasts/new'
+    | '/payments/$id'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
@@ -619,6 +629,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/broadcasts/$id'
     | '/broadcasts/new'
+    | '/payments/$id'
     | '/settings/audit-log'
     | '/settings/calendar'
     | '/settings/client-portal'
@@ -677,6 +688,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/_authenticated/broadcasts/$id'
     | '/_authenticated/broadcasts/new'
+    | '/_authenticated/payments/$id'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/calendar'
     | '/_authenticated/settings/client-portal'
@@ -1091,6 +1103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAuditLogRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/payments/$id': {
+      id: '/_authenticated/payments/$id'
+      path: '/$id'
+      fullPath: '/payments/$id'
+      preLoaderRoute: typeof AuthenticatedPaymentsIdRouteImport
+      parentRoute: typeof AuthenticatedPaymentsRoute
+    }
     '/_authenticated/broadcasts/new': {
       id: '/_authenticated/broadcasts/new'
       path: '/broadcasts/new'
@@ -1129,6 +1148,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedPaymentsRouteChildren {
+  AuthenticatedPaymentsIdRoute: typeof AuthenticatedPaymentsIdRoute
+}
+
+const AuthenticatedPaymentsRouteChildren: AuthenticatedPaymentsRouteChildren = {
+  AuthenticatedPaymentsIdRoute: AuthenticatedPaymentsIdRoute,
+}
+
+const AuthenticatedPaymentsRouteWithChildren =
+  AuthenticatedPaymentsRoute._addFileChildren(
+    AuthenticatedPaymentsRouteChildren,
+  )
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsCalendarRoute: typeof AuthenticatedSettingsCalendarRoute
@@ -1164,7 +1196,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
-  AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
+  AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRepairsRoute: typeof AuthenticatedRepairsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
@@ -1180,7 +1212,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
-  AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
+  AuthenticatedPaymentsRoute: AuthenticatedPaymentsRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRepairsRoute: AuthenticatedRepairsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,

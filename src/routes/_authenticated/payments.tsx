@@ -9,6 +9,10 @@ import { Plus, Wallet, Ban, Link2, Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/audit";
 import { triggerNotificationFn, formatDateClient } from "@/lib/notifications/client";
+import { PaymentStatusBadge } from "@/components/payment-status-badge";
+import { PaymentActionsMenu } from "@/components/payment-actions-menu";
+import { Link } from "@tanstack/react-router";
+import { ExternalLink } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -117,7 +121,19 @@ function PaymentsTab() {
     },
   });
 
-  const total = useMemo(() => (list.data ?? []).filter((p) => !p.voided_at).reduce((s, p) => s + Number(p.amount), 0), [list.data]);
+  const total = useMemo(
+    () =>
+      (list.data ?? [])
+        .filter((p) => p.status === "completed" || p.status === "partially_refunded")
+        .reduce(
+          (s, p) =>
+            s +
+            Number(p.amount) -
+            (p.refunded_amount_cents ?? 0) / 100,
+          0,
+        ),
+    [list.data],
+  );
 
   return (
     <div className="space-y-4">
@@ -149,30 +165,50 @@ function PaymentsTab() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {list.data.map((p) => (
-            <button key={p.id} onClick={() => setEditing(p)} className="w-full text-left">
-              <Card className={`transition hover:border-gold ${p.voided_at ? "opacity-60" : ""}`}>
+          {list.data.map((p) => {
+            const isVoided = p.status === "voided";
+            const amountCents = Math.round(Number(p.amount) * 100);
+            return (
+              <Card key={p.id} className={`transition hover:border-gold ${isVoided ? "opacity-60" : ""}`}>
                 <CardContent className="flex items-center justify-between gap-4 p-4">
-                  <div className="min-w-0">
+                  <button onClick={() => setEditing(p)} className="min-w-0 flex-1 text-left">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="capitalize">{p.category.replace("_", " ")}</Badge>
-                      {p.voided_at && <Badge variant="destructive">Voided</Badge>}
-                      <span className={`font-medium ${p.voided_at ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
+                      <PaymentStatusBadge
+                        status={p.status}
+                        refundedCents={p.refunded_amount_cents}
+                        amountCents={amountCents}
+                      />
+                      <span className={`font-medium ${isVoided ? "line-through" : ""}`}>{p.client?.full_name ?? "—"}</span>
                       {p.client?.display_id && <span className="font-mono text-[10px] text-muted-foreground">{p.client.display_id}</span>}
                       <span className="text-xs text-muted-foreground capitalize">· {p.method.replace("_", " ")}</span>
                       {p.account && <span className="text-xs text-muted-foreground">→ {p.account.name}</span>}
                     </div>
                     {p.description && <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>}
                     {p.void_reason && <p className="mt-1 text-xs text-destructive">Void reason: {p.void_reason}</p>}
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-display text-xl tabular-nums ${p.voided_at ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
+                    {p.dispute_reason && p.status === "disputed" && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Disputed: {p.dispute_reason}</p>
+                    )}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className={`font-display text-xl tabular-nums ${isVoided ? "line-through" : ""}`}>${Number(p.amount).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</div>
+                    </div>
+                    <Link
+                      to="/payments/$id"
+                      params={{ id: p.id }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      title="Open details"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                    <PaymentActionsMenu payment={p} onChanged={() => qc.invalidateQueries({ queryKey: ["payments"] })} />
                   </div>
                 </CardContent>
               </Card>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -413,20 +449,26 @@ function RegisterTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("id, date, amount, description, client:client_id(full_name)")
+        .select("id, date, amount, description, status, refunded_amount_cents, dispute_amount_cents, method, client:client_id(full_name)")
         .eq("bank_account_id", activeAcct!)
-        .is("voided_at", null)
         .order("date", { ascending: false });
       if (error) throw error;
       return data as (Payment & { client: { full_name: string } | null })[];
     },
   });
 
+  // Bank-register rules: voided & disputed excluded from balance, refunds subtract,
+  // lost disputes net to zero, partial refunds reduce the entry.
   const balance = useMemo(() => {
     const acct = accounts.data?.find((a) => a.id === activeAcct);
     if (!acct) return 0;
     const txnSum = (txns.data ?? []).reduce((s, t) => s + Number(t.amount), 0);
-    const paySum = (payments.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const paySum = (payments.data ?? []).reduce((s, p) => {
+      if (p.status === "voided" || p.status === "disputed") return s;
+      if (p.status === "lost") return s; // funds reversed, nets to zero
+      const refunded = (p.refunded_amount_cents ?? 0) / 100;
+      return s + Number(p.amount) - refunded;
+    }, 0);
     return Number(acct.starting_balance) + txnSum + paySum;
   }, [accounts.data, txns.data, payments.data, activeAcct]);
 
@@ -495,32 +537,74 @@ function RegisterTab() {
             <div>
               <h3 className="mb-2 text-sm font-medium uppercase tracking-wider text-muted-foreground">Recent activity</h3>
               <div className="space-y-2">
-                {[...(payments.data ?? []).map((p) => ({
-                  id: `p-${p.id}`, date: p.date, amount: Number(p.amount),
-                  desc: `${p.client?.full_name ?? "Client"} payment${p.description ? ` — ${p.description}` : ""}`, type: "payment" as const,
-                })),
-                ...(txns.data ?? []).map((t) => ({
-                  id: `t-${t.id}`, date: t.date, amount: Number(t.amount),
-                  desc: t.description ?? "Bank transaction", type: "txn" as const,
-                }))]
+                {[
+                  ...(payments.data ?? []).flatMap((p) => {
+                    const amt = Number(p.amount);
+                    const refunded = (p.refunded_amount_cents ?? 0) / 100;
+                    const rows: {
+                      id: string;
+                      date: string;
+                      amount: number;
+                      desc: string;
+                      type: "payment" | "txn" | "refund" | "voided" | "disputed" | "lost";
+                    }[] = [];
+                    const baseDesc = `${p.client?.full_name ?? "Client"} payment${p.description ? ` — ${p.description}` : ""}`;
+                    if (p.status === "voided") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "voided" });
+                    } else if (p.status === "disputed") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "disputed" });
+                    } else if (p.status === "lost") {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "payment" });
+                      rows.push({ id: `p-${p.id}-lost`, date: p.date, amount: -amt, desc: `${baseDesc} — dispute lost`, type: "lost" });
+                    } else {
+                      rows.push({ id: `p-${p.id}`, date: p.date, amount: amt, desc: baseDesc, type: "payment" });
+                      if (refunded > 0) {
+                        rows.push({ id: `p-${p.id}-refund`, date: p.date, amount: -refunded, desc: `${baseDesc} — refund`, type: "refund" });
+                      }
+                    }
+                    return rows;
+                  }),
+                  ...(txns.data ?? []).map((t) => ({
+                    id: `t-${t.id}`, date: t.date, amount: Number(t.amount),
+                    desc: t.description ?? "Bank transaction", type: "txn" as const,
+                  })),
+                ]
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .slice(0, 50)
-                  .map((row) => (
-                    <Card key={row.id}>
-                      <CardContent className="flex items-center justify-between gap-3 p-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={row.type === "payment" ? "secondary" : "outline"} className="capitalize">{row.type === "payment" ? "Payment" : "Manual"}</Badge>
-                            <span className="truncate text-sm">{row.desc}</span>
+                  .map((row) => {
+                    const isVoid = row.type === "voided";
+                    const isDisputed = row.type === "disputed";
+                    const isRefund = row.type === "refund" || row.type === "lost";
+                    const labelMap = {
+                      payment: "Payment",
+                      txn: "Manual",
+                      refund: "Refund",
+                      voided: "Voided",
+                      disputed: "Disputed",
+                      lost: "Dispute lost",
+                    } as const;
+                    return (
+                      <Card key={row.id} className={isDisputed ? "border-amber-500/40 bg-amber-500/5" : isVoid ? "opacity-60" : undefined}>
+                        <CardContent className="flex items-center justify-between gap-3 p-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={row.type === "payment" || row.type === "txn" ? (row.type === "payment" ? "secondary" : "outline") : "outline"}
+                                className={`capitalize ${isVoid ? "line-through" : ""} ${isDisputed ? "border-amber-500/40 text-amber-800 dark:text-amber-200" : ""}`}
+                              >
+                                {labelMap[row.type]}
+                              </Badge>
+                              <span className={`truncate text-sm ${isVoid ? "line-through text-muted-foreground" : ""}`}>{row.desc}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{format(new Date(row.date), "MMM d, yyyy")}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{format(new Date(row.date), "MMM d, yyyy")}</p>
-                        </div>
-                        <div className={`tabular-nums ${row.amount >= 0 ? "text-foreground" : "text-destructive"}`}>
-                          {row.amount >= 0 ? "+" : "−"}${Math.abs(row.amount).toLocaleString()}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <div className={`tabular-nums ${isVoid || isDisputed ? "text-muted-foreground line-through" : isRefund ? "text-destructive" : row.amount >= 0 ? "text-foreground" : "text-destructive"}`}>
+                            {row.amount >= 0 ? "+" : "−"}${Math.abs(row.amount).toLocaleString()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 {!(payments.data?.length || txns.data?.length) && (
                   <p className="text-sm text-muted-foreground">No activity yet.</p>
                 )}
