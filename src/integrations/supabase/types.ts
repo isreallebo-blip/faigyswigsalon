@@ -1188,6 +1188,7 @@ export type Database = {
           dispute_reason: string | null
           id: string
           method: Database["public"]["Enums"]["payment_method"]
+          payment_transaction_id: string | null
           refund_reason: string | null
           refunded_amount_cents: number
           status: Database["public"]["Enums"]["payment_status"]
@@ -1212,6 +1213,7 @@ export type Database = {
           dispute_reason?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
+          payment_transaction_id?: string | null
           refund_reason?: string | null
           refunded_amount_cents?: number
           status?: Database["public"]["Enums"]["payment_status"]
@@ -1236,6 +1238,7 @@ export type Database = {
           dispute_reason?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
+          payment_transaction_id?: string | null
           refund_reason?: string | null
           refunded_amount_cents?: number
           status?: Database["public"]["Enums"]["payment_status"]
@@ -1257,6 +1260,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
             referencedColumns: ["id"]
           },
         ]

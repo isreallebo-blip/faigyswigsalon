@@ -30,6 +30,8 @@ import { getClientUnreadCount } from "@/lib/inbox.functions";
 import { ClientMessages } from "@/components/client-messages";
 import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components/portal-access";
 import { useSignedPhoto } from "@/lib/use-signed-photo";
+import { PaymentMethodsTab } from "@/components/payment-methods-tab";
+import { ChargeCardDialog } from "@/components/charge-card-dialog";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
@@ -554,9 +556,12 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             )}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-          Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <ChargeCardDialog clientId={clientId} clientName={c.full_name} />
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+        </div>
       </div>
 
       <ClientProfileTabs clientId={clientId} client={c}>
@@ -616,6 +621,9 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             clientHasEmail={!!c.email}
           />
         </TabsContent>
+        <TabsContent value="cards" className="pt-4">
+          <PaymentMethodsTab clientId={clientId} />
+        </TabsContent>
         <TabsContent value="portal" className="pt-4">
           <PortalAccessTab clientId={clientId} />
         </TabsContent>
@@ -663,6 +671,7 @@ function ClientProfileTabs({
             </Badge>
           )}
         </TabsTrigger>
+        <TabsTrigger value="cards">Payment Methods</TabsTrigger>
         <TabsTrigger value="portal">Portal Access</TabsTrigger>
       </TabsList>
       {children}
