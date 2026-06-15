@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Send, MessageSquare, CheckCircle2, StickyNote } from "lucide-react";
+import { Send, MessageSquare, CheckCircle2, StickyNote, Megaphone, Plus } from "lucide-react";
 import {
   listConversations,
   getConversation,
@@ -12,7 +12,9 @@ import {
   addInternalNote,
   setConversationStatus,
 } from "@/lib/inbox.functions";
+import { listBroadcasts } from "@/lib/broadcasts.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/lib/use-access";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/inbox")({
 
 type StatusFilter = "all" | "unread" | "replied" | "resolved";
 type ChannelFilter = "all" | "sms" | "email" | "portal";
+type ViewMode = "conversations" | "broadcasts";
 
 function InboxPage() {
   const list = useServerFn(listConversations);
