@@ -32,7 +32,10 @@ type ViewMode = "conversations" | "broadcasts";
 
 function InboxPage() {
   const list = useServerFn(listConversations);
+  const listBcasts = useServerFn(listBroadcasts);
+  const { isAdmin } = useAccess();
   const qc = useQueryClient();
+  const [view, setView] = useState<ViewMode>("conversations");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [channel, setChannel] = useState<ChannelFilter>("all");
   const [search, setSearch] = useState("");
@@ -41,6 +44,13 @@ function InboxPage() {
   const { data: conversations } = useQuery({
     queryKey: ["inbox-list", status, channel, search],
     queryFn: () => list({ data: { status, channel, search } }),
+    enabled: view === "conversations",
+  });
+
+  const { data: broadcasts } = useQuery({
+    queryKey: ["inbox-broadcasts"],
+    queryFn: () => listBcasts(),
+    enabled: view === "broadcasts",
   });
 
   // Realtime: invalidate on any conversation/message change
