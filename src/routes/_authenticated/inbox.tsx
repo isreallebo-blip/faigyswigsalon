@@ -118,51 +118,105 @@ function InboxPage() {
           )}
         </div>
         <div className="flex-1 overflow-y-auto">
-          {(conversations ?? []).map((c) => {
-            const client = (c as unknown as { clients?: { full_name?: string; display_id?: string } }).clients;
-            const name = client?.full_name ?? "Unmatched";
-            return (
-              <button
-                key={c.id}
-                onClick={() => setSelected(c.id as string)}
-                className={cn(
-                  "w-full text-left px-3 py-3 border-b border-border/60 hover:bg-muted/50 transition",
-                  selected === c.id && "bg-muted",
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium text-sm truncate">{name}</div>
-                  <span className="text-[10px] text-muted-foreground">
-                    {format(new Date(c.last_message_at as string), "MMM d, h:mma")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] mt-1">
-                  {client?.display_id && <span className="text-muted-foreground">{client.display_id}</span>}
-                  {c.last_inbound_channel && (
-                    <Badge variant="secondary" className="h-4 text-[9px] px-1.5">
-                      {c.last_inbound_channel as string}
-                    </Badge>
-                  )}
-                  {c.status === "unread" && (
-                    <Badge className="h-4 text-[9px] px-1.5 bg-gold text-foreground">New</Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.last_message_preview}</div>
-              </button>
-            );
-          })}
-          {!conversations?.length && (
-            <div className="p-6 text-sm text-muted-foreground text-center">No conversations yet.</div>
+          {view === "conversations" ? (
+            <>
+              {(conversations ?? []).map((c) => {
+                const client = (c as unknown as { clients?: { full_name?: string; display_id?: string } }).clients;
+                const name = client?.full_name ?? "Unmatched";
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelected(c.id as string)}
+                    className={cn(
+                      "w-full text-left px-3 py-3 border-b border-border/60 hover:bg-muted/50 transition",
+                      selected === c.id && "bg-muted",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium text-sm truncate">{name}</div>
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(new Date(c.last_message_at as string), "MMM d, h:mma")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] mt-1">
+                      {client?.display_id && <span className="text-muted-foreground">{client.display_id}</span>}
+                      {c.last_inbound_channel && (
+                        <Badge variant="secondary" className="h-4 text-[9px] px-1.5">
+                          {c.last_inbound_channel as string}
+                        </Badge>
+                      )}
+                      {c.status === "unread" && (
+                        <Badge className="h-4 text-[9px] px-1.5 bg-gold text-foreground">New</Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.last_message_preview}</div>
+                  </button>
+                );
+              })}
+              {!conversations?.length && (
+                <div className="p-6 text-sm text-muted-foreground text-center">No conversations yet.</div>
+              )}
+            </>
+          ) : (
+            <>
+              {(broadcasts ?? []).map((b) => {
+                const row = b as unknown as {
+                  id: string;
+                  channel: string;
+                  body: string;
+                  recipient_count: number;
+                  sent_count: number | null;
+                  failed_count: number | null;
+                  status: string;
+                  created_at: string;
+                  recipient_filter_summary: string | null;
+                };
+                return (
+                  <Link
+                    key={row.id}
+                    to="/broadcasts/$id"
+                    params={{ id: row.id }}
+                    className="block px-3 py-3 border-b border-border/60 hover:bg-muted/50 transition"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium text-sm truncate flex items-center gap-1.5">
+                        <Megaphone className="size-3.5" />
+                        {row.recipient_filter_summary ?? "Broadcast"}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(new Date(row.created_at), "MMM d, h:mma")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] mt-1">
+                      <Badge variant="secondary" className="h-4 text-[9px] px-1.5 uppercase">
+                        {row.channel}
+                      </Badge>
+                      <Badge variant="outline" className="h-4 text-[9px] px-1.5">
+                        {row.status}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        {row.sent_count ?? 0}/{row.recipient_count} sent
+                        {row.failed_count ? ` · ${row.failed_count} failed` : ""}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{row.body}</div>
+                  </Link>
+                );
+              })}
+              {!broadcasts?.length && (
+                <div className="p-6 text-sm text-muted-foreground text-center">No broadcasts yet.</div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <div className="border border-border rounded-xl overflow-hidden bg-card flex flex-col">
-        {selected ? (
+        {view === "conversations" && selected ? (
           <ConversationView id={selected} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            Select a conversation
+            {view === "broadcasts" ? "Select a broadcast to view delivery report" : "Select a conversation"}
           </div>
         )}
       </div>
