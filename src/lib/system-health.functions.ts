@@ -48,7 +48,7 @@ async function checkResend(): Promise<HealthResult> {
   const res = await withTimeout(fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` } }));
   if (res.status === 401 || res.status === 403) return { status: "error", message: "Invalid API key" };
   if (!res.ok) return { status: "error", message: `Resend check failed (${res.status})` };
-  const body = await res.json().catch(() => ({} as { data?: Array<{ name: string; status: string }> }));
+  const body = (await res.json().catch(() => ({}))) as { data?: Array<{ name: string; status: string }> };
   const domains = body.data ?? [];
   const verified = domains.find((d) => d.status === "verified");
   if (!verified && domains.length > 0) return { status: "warning", message: "Domain not verified in Resend" };

@@ -54,6 +54,7 @@ import { Route as ApiIntuitConnectRouteImport } from './routes/api/intuit/connec
 import { Route as ApiIntuitChargeCardRouteImport } from './routes/api/intuit/charge-card'
 import { Route as ApiIntuitCallbackRouteImport } from './routes/api/intuit/callback'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
+import { Route as AuthenticatedSettingsSystemHealthRouteImport } from './routes/_authenticated/settings.system-health'
 import { Route as AuthenticatedSettingsQuickbooksRouteImport } from './routes/_authenticated/settings.quickbooks'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings.notifications'
 import { Route as AuthenticatedSettingsClientPortalRouteImport } from './routes/_authenticated/settings.client-portal'
@@ -294,6 +295,12 @@ const AuthenticatedSettingsUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsSystemHealthRoute =
+  AuthenticatedSettingsSystemHealthRouteImport.update({
+    id: '/system-health',
+    path: '/system-health',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsQuickbooksRoute =
   AuthenticatedSettingsQuickbooksRouteImport.update({
     id: '/quickbooks',
@@ -389,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
+  '/settings/system-health': typeof AuthenticatedSettingsSystemHealthRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
   '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
@@ -443,6 +451,7 @@ export interface FileRoutesByTo {
   '/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
+  '/settings/system-health': typeof AuthenticatedSettingsSystemHealthRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
   '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
@@ -501,6 +510,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/client-portal': typeof AuthenticatedSettingsClientPortalRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/quickbooks': typeof AuthenticatedSettingsQuickbooksRoute
+  '/_authenticated/settings/system-health': typeof AuthenticatedSettingsSystemHealthRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/api/intuit/callback': typeof ApiIntuitCallbackRoute
   '/api/intuit/charge-card': typeof ApiIntuitChargeCardRoute
@@ -559,6 +569,7 @@ export interface FileRouteTypes {
     | '/settings/client-portal'
     | '/settings/notifications'
     | '/settings/quickbooks'
+    | '/settings/system-health'
     | '/settings/users'
     | '/api/intuit/callback'
     | '/api/intuit/charge-card'
@@ -613,6 +624,7 @@ export interface FileRouteTypes {
     | '/settings/client-portal'
     | '/settings/notifications'
     | '/settings/quickbooks'
+    | '/settings/system-health'
     | '/settings/users'
     | '/api/intuit/callback'
     | '/api/intuit/charge-card'
@@ -670,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/client-portal'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/quickbooks'
+    | '/_authenticated/settings/system-health'
     | '/_authenticated/settings/users'
     | '/api/intuit/callback'
     | '/api/intuit/charge-card'
@@ -1036,6 +1049,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsUsersRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/system-health': {
+      id: '/_authenticated/settings/system-health'
+      path: '/system-health'
+      fullPath: '/settings/system-health'
+      preLoaderRoute: typeof AuthenticatedSettingsSystemHealthRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/quickbooks': {
       id: '/_authenticated/settings/quickbooks'
       path: '/quickbooks'
@@ -1115,6 +1135,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsClientPortalRoute: typeof AuthenticatedSettingsClientPortalRoute
   AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsQuickbooksRoute: typeof AuthenticatedSettingsQuickbooksRoute
+  AuthenticatedSettingsSystemHealthRoute: typeof AuthenticatedSettingsSystemHealthRoute
   AuthenticatedSettingsUsersRoute: typeof AuthenticatedSettingsUsersRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
@@ -1127,6 +1148,8 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsNotificationsRoute:
     AuthenticatedSettingsNotificationsRoute,
   AuthenticatedSettingsQuickbooksRoute: AuthenticatedSettingsQuickbooksRoute,
+  AuthenticatedSettingsSystemHealthRoute:
+    AuthenticatedSettingsSystemHealthRoute,
   AuthenticatedSettingsUsersRoute: AuthenticatedSettingsUsersRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
@@ -1231,13 +1254,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
