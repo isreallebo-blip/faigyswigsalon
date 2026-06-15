@@ -621,6 +621,9 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
             clientHasEmail={!!c.email}
           />
         </TabsContent>
+        <TabsContent value="cards" className="pt-4">
+          <PaymentMethodsTab clientId={clientId} />
+        </TabsContent>
         <TabsContent value="portal" className="pt-4">
           <PortalAccessTab clientId={clientId} />
         </TabsContent>
