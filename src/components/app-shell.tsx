@@ -137,6 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAdmin } = useAccess();
   const nav = isAdmin ? [...baseNav, ...adminNav] : baseNav;
+  const unreadInbox = useUnreadInbox();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
