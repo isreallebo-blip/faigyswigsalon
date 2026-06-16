@@ -660,11 +660,22 @@ function ClientProfileTabs({
     queryFn: () => unreadFn({ data: { clientId } }),
     refetchInterval: 30000,
   });
+  const { data: fileCount } = useQuery({
+    queryKey: ["client-files", clientId, "count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("client_files")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
   void client;
   const count = unread?.count ?? 0;
   return (
     <Tabs defaultValue="profile">
-      <TabsList>
+      <TabsList className="flex flex-wrap h-auto">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="timeline">Timeline</TabsTrigger>
         <TabsTrigger value="messages" className="relative">
@@ -676,6 +687,9 @@ function ClientProfileTabs({
           )}
         </TabsTrigger>
         <TabsTrigger value="cards">Payment Methods</TabsTrigger>
+        <TabsTrigger value="files">
+          Files{fileCount ? ` (${fileCount})` : ""}
+        </TabsTrigger>
         <TabsTrigger value="portal">Portal Access</TabsTrigger>
       </TabsList>
       {children}
