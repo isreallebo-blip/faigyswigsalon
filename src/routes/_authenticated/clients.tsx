@@ -32,6 +32,7 @@ import { PortalAccessTab, PortalAccessCard, PortalStatusDot } from "@/components
 import { useSignedPhoto } from "@/lib/use-signed-photo";
 import { PaymentMethodsTab } from "@/components/payment-methods-tab";
 import { ChargeCardDialog } from "@/components/charge-card-dialog";
+import { ClientFilesTab } from "@/components/client-files-tab";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientStatus = Database["public"]["Enums"]["client_status"];
