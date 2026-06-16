@@ -373,6 +373,56 @@ export type Database = {
           },
         ]
       }
+      client_files: {
+        Row: {
+          category: Database["public"]["Enums"]["client_file_category"]
+          client_id: string
+          created_at: string
+          display_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string | null
+          notes: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["client_file_category"]
+          client_id: string
+          created_at?: string
+          display_name: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["client_file_category"]
+          client_id?: string
+          created_at?: string
+          display_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           auth_user_id: string | null
@@ -1948,6 +1998,15 @@ export type Database = {
       audit_action: "create" | "update" | "delete" | "view" | "void"
       bank_account_type: "bank" | "cc_processor"
       broadcast_channel: "sms" | "email" | "both"
+      client_file_category:
+        | "photo_before"
+        | "photo_after"
+        | "consent_form"
+        | "measurements"
+        | "insurance_medical"
+        | "invoice_receipt"
+        | "correspondence"
+        | "other"
       client_status: "new_consultation" | "active" | "inactive"
       conversation_status: "unread" | "read" | "replied" | "resolved"
       hair_type: "human" | "synthetic"
@@ -2126,6 +2185,16 @@ export const Constants = {
       audit_action: ["create", "update", "delete", "view", "void"],
       bank_account_type: ["bank", "cc_processor"],
       broadcast_channel: ["sms", "email", "both"],
+      client_file_category: [
+        "photo_before",
+        "photo_after",
+        "consent_form",
+        "measurements",
+        "insurance_medical",
+        "invoice_receipt",
+        "correspondence",
+        "other",
+      ],
       client_status: ["new_consultation", "active", "inactive"],
       conversation_status: ["unread", "read", "replied", "resolved"],
       hair_type: ["human", "synthetic"],
