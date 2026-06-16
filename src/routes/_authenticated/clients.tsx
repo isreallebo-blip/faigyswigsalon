@@ -625,6 +625,9 @@ function ClientDetail({ clientId, onClose }: { clientId: string; onClose: () => 
         <TabsContent value="cards" className="pt-4">
           <PaymentMethodsTab clientId={clientId} />
         </TabsContent>
+        <TabsContent value="files" className="pt-4">
+          <ClientFilesTab clientId={clientId} clientDisplayId={c.display_id} />
+        </TabsContent>
         <TabsContent value="portal" className="pt-4">
           <PortalAccessTab clientId={clientId} />
         </TabsContent>
