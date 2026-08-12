@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://kfuzlmoqeqgfbfjjwovr.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "faigy-s-wig-salon",
+      "version": "0.1.0",
+      "title": "Faigy's Wig Salon"
+    },
+    "tools": [
+      {
+        "name": "search_clients",
+        "title": "Search clients",
+        "description": "Search salon clients by name, phone, email, or client ID. Returns matching client records with contact info and status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Name, phone, email, or client display ID to search for."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results to return (default 10)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_client",
+        "title": "Get client overview",
+        "description": "Get a full overview for one client: profile details, their wigs, upcoming appointments, open repairs, and recent payments.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The client's UUID (from search_clients)."
+            }
+          },
+          "required": [
+            "client_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_appointments",
+        "title": "List appointments",
+        "description": "List salon appointments in a date range, optionally filtered by status. Includes the client name for each appointment.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Start date/time ISO string. Defaults to now."
+            },
+            "to": {
+              "type": "string",
+              "description": "End date/time ISO string. Defaults to 14 days after `from`."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scheduled",
+                "completed",
+                "cancelled",
+                "no_show"
+              ],
+              "description": "Filter by appointment status."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max results (default 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_repairs",
+        "title": "List repairs",
+        "description": "List wig repairs sent to vendors, newest first. Filter by status to find open jobs or overdue returns.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Filter by repair status (e.g. 'sent', 'in_progress', 'returned')."
+            },
+            "vendor": {
+              "type": "string",
+              "description": "Filter by vendor name (partial match)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max results (default 25)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_payments",
+        "title": "List payments",
+        "description": "List salon payments in a date range with totals by method, optionally filtered by client, method, or status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Start date (YYYY-MM-DD). Defaults to 30 days ago."
+            },
+            "to": {
+              "type": "string",
+              "description": "End date (YYYY-MM-DD). Defaults to today."
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only payments for this client."
+            },
+            "method": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "check",
+                "credit_card",
+                "zelle",
+                "other"
+              ],
+              "description": "Filter by payment method."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Max results (default 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_client_note",
+        "title": "Add client note",
+        "description": "Append a timestamped note to a client's notes field. Existing notes are preserved; nothing is overwritten.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The client's UUID (from search_clients)."
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The note text to append."
+            }
+          },
+          "required": [
+            "client_id",
+            "note"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
