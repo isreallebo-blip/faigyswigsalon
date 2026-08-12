@@ -13,6 +13,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -38,6 +39,8 @@ import { Route as AuthenticatedInventoryRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as ApiPublicTwilioTestRouteImport } from './routes/api/public/twilio-test'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio-status'
@@ -63,6 +66,7 @@ import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_aut
 import { Route as AuthenticatedPaymentsIdRouteImport } from './routes/_authenticated/payments.$id'
 import { Route as AuthenticatedBroadcastsNewRouteImport } from './routes/_authenticated/broadcasts.new'
 import { Route as AuthenticatedBroadcastsIdRouteImport } from './routes/_authenticated/broadcasts.$id'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -85,6 +89,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -211,6 +220,18 @@ const AuthenticatedAppointmentsRoute =
     id: '/appointments',
     path: '/appointments',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
@@ -349,6 +370,12 @@ const AuthenticatedBroadcastsIdRoute =
     path: '/broadcasts/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -370,10 +397,13 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/portal': typeof PortalRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/inbox': typeof AuthenticatedInboxRoute
@@ -395,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/portal/wigs': typeof PortalWigsRoute
   '/receipt/$token': typeof ReceiptTokenRoute
   '/portal/': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
   '/payments/$id': typeof AuthenticatedPaymentsIdRoute
@@ -427,9 +458,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/inbox': typeof AuthenticatedInboxRoute
@@ -451,6 +485,7 @@ export interface FileRoutesByTo {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
   '/payments/$id': typeof AuthenticatedPaymentsIdRoute
@@ -485,10 +520,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/portal': typeof PortalRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
@@ -511,6 +549,7 @@ export interface FileRoutesById {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/_authenticated/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
   '/_authenticated/payments/$id': typeof AuthenticatedPaymentsIdRoute
@@ -546,10 +585,13 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/portal'
     | '/privacy'
     | '/reset-password'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/appointments'
     | '/clients'
     | '/inbox'
@@ -571,6 +613,7 @@ export interface FileRouteTypes {
     | '/portal/wigs'
     | '/receipt/$token'
     | '/portal/'
+    | '/.mcp/invoke-tool/$tool'
     | '/broadcasts/$id'
     | '/broadcasts/new'
     | '/payments/$id'
@@ -603,9 +646,12 @@ export interface FileRouteTypes {
   to:
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/privacy'
     | '/reset-password'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/appointments'
     | '/clients'
     | '/inbox'
@@ -627,6 +673,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/'
     | '/portal'
+    | '/.mcp/invoke-tool/$tool'
     | '/broadcasts/$id'
     | '/broadcasts/new'
     | '/payments/$id'
@@ -660,10 +707,13 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/portal'
     | '/privacy'
     | '/reset-password'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/appointments'
     | '/_authenticated/clients'
     | '/_authenticated/inbox'
@@ -686,6 +736,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/_authenticated/'
     | '/portal/'
+    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/broadcasts/$id'
     | '/_authenticated/broadcasts/new'
     | '/_authenticated/payments/$id'
@@ -720,11 +771,15 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   PortalRoute: typeof PortalRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ReceiptTokenRoute: typeof ReceiptTokenRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiIntuitCallbackRoute: typeof ApiIntuitCallbackRoute
   ApiIntuitChargeCardRoute: typeof ApiIntuitChargeCardRoute
   ApiIntuitConnectRoute: typeof ApiIntuitConnectRoute
@@ -772,6 +827,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -949,6 +1011,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppointmentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
       path: '/'
@@ -1124,6 +1200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBroadcastsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1260,11 +1343,16 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   PortalRoute: PortalRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ReceiptTokenRoute: ReceiptTokenRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiIntuitCallbackRoute: ApiIntuitCallbackRoute,
   ApiIntuitChargeCardRoute: ApiIntuitChargeCardRoute,
   ApiIntuitConnectRoute: ApiIntuitConnectRoute,
