@@ -26,7 +26,10 @@ export default defineTool({
     if (!client) return errorResult("No client found with that id.");
 
     const [wigs, appointments, repairs, payments] = await Promise.all([
-      supabase.from("wigs").select("id, wig_code, brand, style, color, cap_size, status").eq("client_id", client_id),
+      supabase
+        .from("wigs")
+        .select("id, wig_code, display_id, brand, style, color, cap_size, status")
+        .eq("reserved_for_client_id", client_id),
       supabase
         .from("appointments")
         .select("id, starts_at, ends_at, type, status, notes")
