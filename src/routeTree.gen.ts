@@ -67,6 +67,7 @@ import { Route as AuthenticatedPaymentsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedBroadcastsNewRouteImport } from './routes/_authenticated/broadcasts.new'
 import { Route as AuthenticatedBroadcastsIdRouteImport } from './routes/_authenticated/broadcasts.$id'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -376,6 +377,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -425,6 +431,7 @@ export interface FileRoutesByFullPath {
   '/portal/wigs': typeof PortalWigsRoute
   '/receipt/$token': typeof ReceiptTokenRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
@@ -549,6 +557,7 @@ export interface FileRoutesById {
   '/receipt/$token': typeof ReceiptTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/broadcasts/$id': typeof AuthenticatedBroadcastsIdRoute
   '/_authenticated/broadcasts/new': typeof AuthenticatedBroadcastsNewRoute
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | '/portal/wigs'
     | '/receipt/$token'
     | '/portal/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/broadcasts/$id'
     | '/broadcasts/new'
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/'
     | '/portal'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/broadcasts/$id'
     | '/broadcasts/new'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/receipt/$token'
     | '/_authenticated/'
     | '/portal/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/broadcasts/$id'
     | '/_authenticated/broadcasts/new'
@@ -779,6 +791,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ReceiptTokenRoute: typeof ReceiptTokenRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiIntuitCallbackRoute: typeof ApiIntuitCallbackRoute
   ApiIntuitChargeCardRoute: typeof ApiIntuitChargeCardRoute
@@ -1207,6 +1220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1352,6 +1372,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ReceiptTokenRoute: ReceiptTokenRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiIntuitCallbackRoute: ApiIntuitCallbackRoute,
   ApiIntuitChargeCardRoute: ApiIntuitChargeCardRoute,
